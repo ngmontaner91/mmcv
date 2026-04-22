@@ -850,7 +850,7 @@ function lookupNombre(ids, lista, tabla) {
 function renderDashboard() {
   const activas = state.solicitudes.filter(s => {
     const est = s.fields[FIELDS.SOL.estado];
-    return est && !['Pagado', 'Rechazado'].includes(est);
+    return est !== 'Rechazado';
   });
   const hoy = new Date(); hoy.setHours(0,0,0,0);
   const urgentes = activas.filter(s => {
@@ -862,7 +862,7 @@ function renderDashboard() {
   const pagadas = state.solicitudes.filter(s => s.fields[FIELDS.SOL.estado] === 'Pagado');
   const saldoTotal = activas.reduce((acc, s) => acc + (Number(s.fields[FIELDS.SOL.saldo]) || 0), 0);
 
-  document.getElementById('m-activas').textContent  = activas.length;
+  document.getElementById('m-activas').textContent  = activas.filter(s => s.fields[FIELDS.SOL.estado] !== 'Pagado').length;
   document.getElementById('m-urgentes').textContent = urgentes.length;
   document.getElementById('m-saldo').textContent    = ars(saldoTotal);
   document.getElementById('m-pagadas').textContent  = pagadas.length;
