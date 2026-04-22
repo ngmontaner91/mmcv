@@ -656,50 +656,50 @@ const TABLES = {
 
 const FIELDS = {
   SOL: {
-    nombre:         'fldqyx77D3Z34UZIS',
-    obra:           'fldZJMrWSxQU7LoIs',
-    proveedor:      'fldzmCGP2JXsXsTTG',
-    concepto:       'fld0ubIJcadvUffiz',
-    monto_orig_ars: 'fldP90nugh2m3bHCy',
-    monto_orig_usd: 'fldi1bwzhRIYP05CJ',
-    moneda:         'fldiayx4HCQc4KXoL',
-    tc:             'fld9tyMMHMUvDc8bL',
-    urgencia:       'fldAmwq5tTOtZqTia',
-    deadline:       'fldIerYto6jPLto5r',
-    condicion_stop: 'fld0tUMLmmnEQHrsk',
-    fecha_entrega:  'fld4HNFJcxg4moFJX',
-    estado:         'fld2376MZDbtDnQxa',
-    fecha_aprobacion: 'fldCjgVDzIoKGktNB',
-    arq_nombre:     'fldtETLeRKDMoHHWw',
-    arq_email:      'fldHodrc851sdLg73',
-    monto_vigente:  'fldGU33BF0CFudcoA',
-    total_pagado:   'fldnLC8blFGP3XM9T',
-    saldo:          'fld2BPyhqNSundsTY',
-    obs:            'fld90O01fyK50uSgs',
+    nombre:           'nombre_solicitud',
+    obra:             'obra',
+    proveedor:        'proveedor',
+    concepto:         'concepto',
+    monto_orig_ars:   'monto_original_ars',
+    monto_orig_usd:   'monto_original_usd',
+    moneda:           'moneda',
+    tc:               'tc_al_momento',
+    urgencia:         'urgencia',
+    deadline:         'deadline',
+    condicion_stop:   'condicion_stop',
+    fecha_entrega:    'fecha_entrega_proveedor',
+    estado:           'estado',
+    fecha_aprobacion: 'fecha_aprobacion',
+    arq_nombre:       'arquitecto_nombre',
+    arq_email:        'arquitecto_email',
+    monto_vigente:    'monto_vigente_ars [calc]',
+    total_pagado:     'total_pagado_ars [calc]',
+    saldo:            'saldo_pendiente_ars [calc]',
+    obs:              'observaciones',
   },
   PAG: {
-    nombre:     'fldlgLY9AJP2jYxcs',
-    solicitud:  'fldy1boXkUqjbEtBM',
-    fecha:      'fldOSJ4OGZbhHv1B0',
-    monto_ars:  'fldShGcMqKbSozOaC',
-    monto_usd:  'flde9K8kKhEDFZdXM',
-    moneda:     'fldh5Ibiux4e7hxcK',
-    tc:         'fldtA5zI73GCz8XfE',
-    equiv_ars:  'fldSxhB6MlMLhMZt9',
-    comp:       'fldw2J4o4ik4LPZUo',
-    registrado: 'fldq4TWPQ15Tsm7FB',
+    nombre:     'nombre_pago',
+    solicitud:  'solicitud',
+    fecha:      'fecha_pago',
+    monto_ars:  'monto_ars',
+    monto_usd:  'monto_usd',
+    moneda:     'moneda_pago',
+    tc:         'tc_al_momento',
+    equiv_ars:  'monto_ars_equivalente',
+    comp:       'comprobante',
+    registrado: 'registrado_por',
   },
   ADIC: {
-    nombre:     'fldkW7A0akLl0phBb',
-    solicitud:  'fld7l6PT4ywmhlX26',
-    fecha:      'fldAuny5aXwcXqzY3',
-    monto_ars:  'fldYylYnNyLg7Phqq',
-    monto_usd:  'fldDz3NsZhBdVBdtc',
-    moneda:     'fldiy4m7wrdSzBhuH',
-    tc:         'fldhtQ0uAX27C7s4W',
-    equiv_ars:  'fldi0wFo4C2TR5x5S',
-    motivo:     'fldq1sOIDqlNvq6xV',
-    registrado: 'fldwBtwdXaVUapkEt',
+    nombre:     'nombre_adicional',
+    solicitud:  'solicitud',
+    fecha:      'fecha',
+    monto_ars:  'monto_ars',
+    monto_usd:  'monto_usd',
+    moneda:     'moneda',
+    tc:         'tc_al_momento',
+    equiv_ars:  'monto_ars_equivalente',
+    motivo:     'motivo',
+    registrado: 'registrado_por',
   }
 };
 
@@ -751,7 +751,7 @@ async function airtableFetch(tableId, opts = {}) {
 async function fetchAll(tableId, fields = []) {
   let records = [], offset;
   do {
-    const params = {};
+    const params = { cellFormat: 'json', returnFieldsByFieldId: 'false' };
     if (offset) params.offset = offset;
     if (fields.length) params['fields[]'] = fields;
     const data = await airtableFetch(tableId, { params });
@@ -799,7 +799,21 @@ function renderAll() {
   populateSelects();
 }
 
+function getVal(fields, key) {
+  const v = fields[key];
+  if (!v && v !== 0) return null;
+  if (typeof v === 'object' && v.name) return v.name; // singleSelect
+  return v;
+}
+
+function urgSpan(urg) {
+  const u = typeof urg === 'object' ? urg?.name : urg;
+  const map = { Alta: 'urg-alta', Media: 'urg-media', Baja: 'urg-baja' };
+  return `<span class="urg ${map[u] || ''}">${u || '—'}</span>`;
+}
+
 function estadoPill(estado) {
+  const e = typeof estado === 'object' ? estado?.name : estado;
   const map = {
     'Pendiente aprobación': 'pill-yellow',
     'Aprobado':             'pill-blue',
@@ -807,12 +821,7 @@ function estadoPill(estado) {
     'Pagado':               'pill-green',
     'Rechazado':            'pill-red',
   };
-  return `<span class="pill ${map[estado] || 'pill-gray'}">${estado || '—'}</span>`;
-}
-
-function urgSpan(urg) {
-  const map = { Alta: 'urg-alta', Media: 'urg-media', Baja: 'urg-baja' };
-  return `<span class="urg ${map[urg] || ''}">${urg || '—'}</span>`;
+  return `<span class="pill ${map[e] || 'pill-gray'}">${e || '—'}</span>`;
 }
 
 function deadlineSpan(dl) {
@@ -841,15 +850,18 @@ function getNombre(record, tabla) {
   return '—';
 }
 
-function lookupNombre(ids, lista, tabla) {
-  if (!ids || !ids.length) return '—';
-  const rec = lista.find(r => r.id === ids[0]);
+function lookupNombre(linkedRecords, lista, tabla) {
+  if (!linkedRecords || !linkedRecords.length) return '—';
+  // Airtable devuelve los linked records con {id, name} directamente
+  if (linkedRecords[0] && linkedRecords[0].name) return linkedRecords[0].name;
+  // Fallback: buscar en la lista local
+  const rec = lista.find(r => r.id === linkedRecords[0]);
   return rec ? getNombre(rec, tabla) : '—';
 }
 
 function renderDashboard() {
   const activas = state.solicitudes.filter(s => {
-    const est = s.fields[FIELDS.SOL.estado];
+    const est = getVal(s.fields, FIELDS.SOL.estado);
     return est !== 'Rechazado';
   });
   const hoy = new Date(); hoy.setHours(0,0,0,0);
@@ -859,18 +871,18 @@ function renderDashboard() {
     const d = new Date(dl + 'T00:00:00');
     return Math.ceil((d - hoy) / 86400000) <= 3;
   });
-  const pagadas = state.solicitudes.filter(s => s.fields[FIELDS.SOL.estado] === 'Pagado');
+  const pagadas = state.solicitudes.filter(s => getVal(s.fields, FIELDS.SOL.estado) === 'Pagado');
   const saldoTotal = activas.reduce((acc, s) => acc + (Number(s.fields[FIELDS.SOL.saldo]) || 0), 0);
 
-  document.getElementById('m-activas').textContent  = activas.filter(s => s.fields[FIELDS.SOL.estado] !== 'Pagado').length;
+  document.getElementById('m-activas').textContent  = activas.filter(s => getVal(s.fields, FIELDS.SOL.estado) !== 'Pagado').length;
   document.getElementById('m-urgentes').textContent = urgentes.length;
   document.getElementById('m-saldo').textContent    = ars(saldoTotal);
   document.getElementById('m-pagadas').textContent  = pagadas.length;
 
   const sorted = [...activas].sort((a, b) => {
     const urg = {Alta:0,Media:1,Baja:2};
-    const ua = urg[a.fields[FIELDS.SOL.urgencia]] ?? 3;
-    const ub = urg[b.fields[FIELDS.SOL.urgencia]] ?? 3;
+    const ua = urg[getVal(a.fields, FIELDS.SOL.urgencia)] ?? 3;
+    const ub = urg[getVal(b.fields, FIELDS.SOL.urgencia)] ?? 3;
     if (ua !== ub) return ua - ub;
     const da = a.fields[FIELDS.SOL.deadline] || '9999';
     const db = b.fields[FIELDS.SOL.deadline] || '9999';
@@ -909,7 +921,7 @@ function renderSolicitudes() {
   const filtroObra   = document.getElementById('filtro-obra')?.value   || '';
 
   let lista = [...state.solicitudes];
-  if (filtroEstado) lista = lista.filter(s => s.fields[FIELDS.SOL.estado] === filtroEstado);
+  if (filtroEstado) lista = lista.filter(s => getVal(s.fields, FIELDS.SOL.estado) === filtroEstado);
   if (filtroObra)   lista = lista.filter(s => {
     const ids = s.fields[FIELDS.SOL.obra] || [];
     return ids.includes(filtroObra);
@@ -985,7 +997,7 @@ function populateSelects() {
 
   // Solicitudes activas en formulario pago
   const activasSols = state.solicitudes.filter(s => {
-    const est = s.fields[FIELDS.SOL.estado];
+    const est = getVal(s.fields, FIELDS.SOL.estado);
     return ['Aprobado', 'Pago parcial'].includes(est);
   });
   const npSol = document.getElementById('np-solicitud');
@@ -1007,7 +1019,7 @@ function populateSelects() {
   // Solicitudes en formulario adicional
   const naSol = document.getElementById('na-solicitud');
   naSol.innerHTML = '<option value="">— Seleccionar solicitud —</option>' +
-    state.solicitudes.filter(s => !['Rechazado'].includes(s.fields[FIELDS.SOL.estado]))
+    state.solicitudes.filter(s => !['Rechazado'].includes(getVal(s.fields, FIELDS.SOL.estado)))
     .map(s => `<option value="${s.id}">${s.fields[FIELDS.SOL.nombre]||s.id}</option>`).join('');
 }
 
@@ -1048,7 +1060,7 @@ function abrirModalEstado(solicitudId) {
   const sol = state.solicitudes.find(s => s.id === solicitudId);
   const f = sol?.fields || {};
   document.getElementById('modal-estado-info').textContent = f[FIELDS.SOL.nombre] || solicitudId;
-  document.getElementById('modal-nuevo-estado').value = f[FIELDS.SOL.estado] || 'Pendiente aprobación';
+  document.getElementById('modal-nuevo-estado').value = getVal(f, FIELDS.SOL.estado) || 'Pendiente aprobación';
   document.getElementById('modal-fecha-aprobacion').value = f[FIELDS.SOL.fecha_aprobacion] || '';
   openModal('modal-estado');
 }
@@ -1071,9 +1083,9 @@ function abrirModalUrgencia(solicitudId) {
   const sol = state.solicitudes.find(s => s.id === solicitudId);
   const f = sol?.fields || {};
   document.getElementById('modal-urgencia-info').textContent = f[FIELDS.SOL.nombre] || solicitudId;
-  document.getElementById('modal-urgencia-val').value    = f[FIELDS.SOL.urgencia] || 'Media';
+  document.getElementById('modal-urgencia-val').value    = getVal(f, FIELDS.SOL.urgencia) || 'Media';
   document.getElementById('modal-deadline-val').value    = f[FIELDS.SOL.deadline] || '';
-  document.getElementById('modal-condicion-stop').value  = f[FIELDS.SOL.condicion_stop] || 'Saldo = 0';
+  document.getElementById('modal-condicion-stop').value  = getVal(f, FIELDS.SOL.condicion_stop) || 'Saldo = 0';
   document.getElementById('modal-fecha-entrega').value   = f[FIELDS.SOL.fecha_entrega] || '';
   openModal('modal-urgencia');
 }
