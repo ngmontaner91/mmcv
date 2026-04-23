@@ -275,8 +275,8 @@
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th>Solicitud</th><th>Obra</th><th>Proveedor</th>
-            <th>Base ARS</th><th>IVA ARS</th><th>Base USD</th><th>IVA USD</th>
+            <th>Solicitud</th><th>Obra</th><th>Proveedor</th><th>Moneda</th>
+            <th>Final ARS</th><th>Final USD</th>
             <th>Actualizado</th><th>Pagado</th><th>Saldo</th><th>Estado</th><th>Acciones</th>
           </tr></thead>
           <tbody id="tbody-solicitudes"><tr><td colspan="12" class="loading"><span class="spinner"></span>Cargando...</td></tr></tbody>
@@ -320,26 +320,18 @@
         </div>
         <div class="form-field" id="field-base-ars">
           <label class="form-label">Monto base sin IVA (ARS) <span class="req">*</span></label>
-          <input class="form-input" id="ns-base-ars" type="number" placeholder="0" oninput="calcularTotalSol()"/>
+          <input class="form-input" id="ns-base-ars" type="number" placeholder="0"/>
         </div>
         <div class="form-field hidden" id="field-base-usd">
           <label class="form-label">Monto base sin IVA (USD) <span class="req">*</span></label>
-          <input class="form-input" id="ns-base-usd" type="number" placeholder="0" oninput="calcularTotalSol()"/>
+          <input class="form-input" id="ns-base-usd" type="number" placeholder="0"/>
         </div>
         <div class="form-field full">
           <label class="form-label">¿Incluye IVA?</label>
           <div style="display:flex;align-items:center;gap:10px;margin-top:4px;">
-            <input type="checkbox" id="ns-tiene-iva" onchange="toggleIvaSol()" style="width:16px;height:16px;cursor:pointer;"/>
+            <input type="checkbox" id="ns-tiene-iva" style="width:16px;height:16px;cursor:pointer;"/>
             <span style="font-size:13px;color:var(--text2);">Sí, este presupuesto incluye IVA</span>
           </div>
-        </div>
-        <div class="form-field hidden" id="field-iva-ars">
-          <label class="form-label">Monto IVA (ARS)</label>
-          <input class="form-input" id="ns-iva-ars" type="number" placeholder="0" oninput="calcularTotalSol()"/>
-        </div>
-        <div class="form-field hidden" id="field-iva-usd">
-          <label class="form-label">Monto IVA (USD)</label>
-          <input class="form-input" id="ns-iva-usd" type="number" placeholder="0" oninput="calcularTotalSol()"/>
         </div>
         <div class="form-field" id="field-final-ars">
           <label class="form-label">Monto final con IVA (ARS) <span class="req">*</span></label>
@@ -483,26 +475,18 @@
         </div>
         <div class="form-field" id="field-adic-base-ars">
           <label class="form-label">Monto base sin IVA (ARS) <span class="req">*</span></label>
-          <input class="form-input" id="na-base-ars" type="number" placeholder="Positivo = extra, negativo = descuento" oninput="calcularTotalAdic()"/>
+          <input class="form-input" id="na-base-ars" type="number" placeholder="Positivo = extra, negativo = descuento"/>
         </div>
         <div class="form-field hidden" id="field-adic-base-usd">
           <label class="form-label">Monto base sin IVA (USD) <span class="req">*</span></label>
-          <input class="form-input" id="na-base-usd" type="number" placeholder="Positivo = extra, negativo = descuento" oninput="calcularTotalAdic()"/>
+          <input class="form-input" id="na-base-usd" type="number" placeholder="Positivo = extra, negativo = descuento"/>
         </div>
         <div class="form-field full">
           <label class="form-label">¿Incluye IVA?</label>
           <div style="display:flex;align-items:center;gap:10px;margin-top:4px;">
-            <input type="checkbox" id="na-tiene-iva" onchange="toggleIvaAdic()" style="width:16px;height:16px;cursor:pointer;"/>
+            <input type="checkbox" id="na-tiene-iva" style="width:16px;height:16px;cursor:pointer;"/>
             <span style="font-size:13px;color:var(--text2);">Sí, este adicional incluye IVA</span>
           </div>
-        </div>
-        <div class="form-field hidden" id="field-adic-iva-ars">
-          <label class="form-label">Monto IVA (ARS)</label>
-          <input class="form-input" id="na-iva-ars" type="number" placeholder="0" oninput="calcularTotalAdic()"/>
-        </div>
-        <div class="form-field hidden" id="field-adic-iva-usd">
-          <label class="form-label">Monto IVA (USD)</label>
-          <input class="form-input" id="na-iva-usd" type="number" placeholder="0" oninput="calcularTotalAdic()"/>
         </div>
         <div class="form-field" id="field-adic-final-ars">
           <label class="form-label">Monto final con IVA (ARS)</label>
@@ -736,8 +720,6 @@ const FIELDS = {
     monto_base_ars:   'monto_base_ars',
     monto_base_usd:   'monto_base_usd',
     tiene_iva:        'tiene_iva',
-    monto_iva_ars:    'monto_iva_ars',
-    monto_iva_usd:    'monto_iva_usd',
     monto_final_ars:  'monto_final_ars',
     monto_final_usd:  'monto_final_usd',
     moneda:           'moneda',
@@ -774,8 +756,6 @@ const FIELDS = {
     monto_base_ars: 'monto_base_ars',
     monto_base_usd: 'monto_base_usd',
     tiene_iva:      'tiene_iva',
-    monto_iva_ars:  'monto_iva_ars',
-    monto_iva_usd:  'monto_iva_usd',
     monto_final_ars:'monto_final_ars',
     monto_final_usd:'monto_final_usd',
     moneda:         'moneda',
@@ -1075,20 +1055,22 @@ function renderSolicitudes() {
   });
 
   const tbody = document.getElementById('tbody-solicitudes');
-  if (!lista.length) { tbody.innerHTML = '<tr><td colspan="12" class="empty">No hay solicitudes</td></tr>'; return; }
+  if (!lista.length) { tbody.innerHTML = '<tr><td colspan="11" class="empty">No hay solicitudes</td></tr>'; return; }
 
   tbody.innerHTML = lista.map(s => {
     const f = s.fields;
     const obraName = lookupNombre(f[FIELDS.SOL.obra], state.obras, 'obras');
     const provName = lookupNombre(f[FIELDS.SOL.proveedor], state.proveedores, 'proveedores');
+    const moneda = getVal(f, FIELDS.SOL.moneda);
+    const finalArs = f[FIELDS.SOL.monto_final_ars] || f[FIELDS.SOL.monto_base_ars] || 0;
+    const finalUsd = f[FIELDS.SOL.monto_final_usd] || f[FIELDS.SOL.monto_base_usd] || 0;
     return `<tr>
       <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f[FIELDS.SOL.nombre]||'—'}</td>
       <td>${obraName}</td>
       <td>${provName}</td>
-      <td>${ars(f[FIELDS.SOL.monto_base_ars])}</td>
-      <td style="color:var(--text2);font-size:12px;">${f[FIELDS.SOL.tiene_iva] ? ars(f[FIELDS.SOL.monto_iva_ars]) : '—'}</td>
-      <td>${f[FIELDS.SOL.monto_base_usd] ? 'USD ' + Number(f[FIELDS.SOL.monto_base_usd]).toLocaleString('es-AR',{minimumFractionDigits:2}) : '—'}</td>
-      <td style="color:var(--text2);font-size:12px;">${f[FIELDS.SOL.tiene_iva] && f[FIELDS.SOL.monto_iva_usd] ? 'USD ' + Number(f[FIELDS.SOL.monto_iva_usd]).toLocaleString('es-AR',{minimumFractionDigits:2}) : '—'}</td>
+      <td><span class="pill ${moneda==='USD'?'pill-green':'pill-blue'}">${moneda||'—'}</span></td>
+      <td>${moneda === 'ARS' ? ars(finalArs) : '—'}</td>
+      <td>${moneda === 'USD' ? 'USD ' + Number(finalUsd).toLocaleString('es-AR',{minimumFractionDigits:2}) : '—'}</td>
       <td>${ars(f[FIELDS.SOL.monto_vigente])}</td>
       <td>${ars(f[FIELDS.SOL.total_pagado])}</td>
       <td style="font-weight:500;">${ars(f[FIELDS.SOL.saldo])}</td>
@@ -1254,22 +1236,14 @@ async function confirmarUrgencia() {
 // FORM: NUEVA SOLICITUD
 // ============================================================
 function toggleMoneda() {
-  const moneda = document.getElementById('ns-moneda').value;
-  document.getElementById('field-base-ars').classList.toggle('hidden', moneda === 'USD');
-  document.getElementById('field-base-usd').classList.toggle('hidden', moneda === 'ARS');
-  document.getElementById('field-tc').classList.toggle('hidden', moneda === 'ARS');
-  document.getElementById('field-final-ars').classList.toggle('hidden', moneda === 'USD');
-  document.getElementById('field-final-usd').classList.toggle('hidden', moneda === 'ARS');
-  const tieneIva = document.getElementById('ns-tiene-iva').checked;
-  document.getElementById('field-iva-ars').classList.toggle('hidden', moneda !== 'ARS' || !tieneIva);
-  document.getElementById('field-iva-usd').classList.toggle('hidden', moneda !== 'USD' || !tieneIva);
+  const m = document.getElementById('ns-moneda').value;
+  document.getElementById('field-base-ars').classList.toggle('hidden', m === 'USD');
+  document.getElementById('field-base-usd').classList.toggle('hidden', m === 'ARS');
+  document.getElementById('field-tc').classList.toggle('hidden', m === 'ARS');
+  document.getElementById('field-final-ars').classList.toggle('hidden', m === 'USD');
+  document.getElementById('field-final-usd').classList.toggle('hidden', m === 'ARS');
 }
-function toggleIvaSol() {
-  const moneda = document.getElementById('ns-moneda').value;
-  const tieneIva = document.getElementById('ns-tiene-iva').checked;
-  document.getElementById('field-iva-ars').classList.toggle('hidden', moneda !== 'ARS' || !tieneIva);
-  document.getElementById('field-iva-usd').classList.toggle('hidden', moneda !== 'USD' || !tieneIva);
-}
+function toggleIvaSol() {}
 function calcularTotalSol() {}
 function toggleFechaEntrega() {
   const val = document.getElementById('ns-condicion-stop').value;
@@ -1285,8 +1259,8 @@ async function guardarSolicitud() {
   const baseArs  = parseFloat(document.getElementById('ns-base-ars').value) || 0;
   const baseUsd  = parseFloat(document.getElementById('ns-base-usd').value) || 0;
   const tieneIva = document.getElementById('ns-tiene-iva').checked;
-  const ivaArs   = parseFloat(document.getElementById('ns-iva-ars').value) || 0;
-  const ivaUsd   = parseFloat(document.getElementById('ns-iva-usd').value) || 0;
+  const finalArs = parseFloat(document.getElementById('ns-final-ars').value) || 0;
+  const finalUsd = parseFloat(document.getElementById('ns-final-usd').value) || 0;
   const tc       = parseFloat(document.getElementById('ns-tc').value) || 0;
   const urgencia = document.getElementById('ns-urgencia').value;
   const deadline = document.getElementById('ns-deadline').value;
@@ -1295,12 +1269,6 @@ async function guardarSolicitud() {
   const arqNom   = document.getElementById('ns-arquitecto').value.trim();
   const arqEmail = document.getElementById('ns-email').value.trim();
   const obs      = document.getElementById('ns-obs').value.trim();
-
-  const finalArs = parseFloat(document.getElementById('ns-final-ars').value) || 0;
-  const finalUsd = parseFloat(document.getElementById('ns-final-usd').value) || 0;
-
-  const montoBase = moneda === 'ARS' ? baseArs : baseUsd * tc;
-  const montoIva  = moneda === 'ARS' ? ivaArs  : ivaUsd  * tc;
 
   if (!nombre || !obra || !prov || !concepto || !urgencia || !deadline || !arqNom || !arqEmail) {
     showToast('Completá todos los campos obligatorios', 'error'); return;
@@ -1320,8 +1288,6 @@ async function guardarSolicitud() {
     [FIELDS.SOL.monto_base_ars]:  moneda === 'ARS' ? baseArs : 0,
     [FIELDS.SOL.monto_base_usd]:  moneda === 'USD' ? baseUsd : 0,
     [FIELDS.SOL.tiene_iva]:       tieneIva,
-    [FIELDS.SOL.monto_iva_ars]:   moneda === 'ARS' ? ivaArs : 0,
-    [FIELDS.SOL.monto_iva_usd]:   moneda === 'USD' ? ivaUsd : 0,
     [FIELDS.SOL.monto_final_ars]: moneda === 'ARS' ? finalArs : 0,
     [FIELDS.SOL.monto_final_usd]: moneda === 'USD' ? finalUsd : 0,
     [FIELDS.SOL.tc]:              tc || null,
@@ -1418,16 +1384,8 @@ function toggleMonedaAdic() {
   document.getElementById('field-adic-tc').classList.toggle('hidden', m === 'ARS');
   document.getElementById('field-adic-final-ars').classList.toggle('hidden', m === 'USD');
   document.getElementById('field-adic-final-usd').classList.toggle('hidden', m === 'ARS');
-  const tieneIva = document.getElementById('na-tiene-iva').checked;
-  document.getElementById('field-adic-iva-ars').classList.toggle('hidden', m !== 'ARS' || !tieneIva);
-  document.getElementById('field-adic-iva-usd').classList.toggle('hidden', m !== 'USD' || !tieneIva);
 }
-function toggleIvaAdic() {
-  const m = document.getElementById('na-moneda').value;
-  const tieneIva = document.getElementById('na-tiene-iva').checked;
-  document.getElementById('field-adic-iva-ars').classList.toggle('hidden', m !== 'ARS' || !tieneIva);
-  document.getElementById('field-adic-iva-usd').classList.toggle('hidden', m !== 'USD' || !tieneIva);
-}
+function toggleIvaAdic() {}
 function calcularTotalAdic() {}
 
 async function guardarAdicional() {
@@ -1439,22 +1397,17 @@ async function guardarAdicional() {
   const baseArs  = parseFloat(document.getElementById('na-base-ars').value) || 0;
   const baseUsd  = parseFloat(document.getElementById('na-base-usd').value) || 0;
   const tieneIva = document.getElementById('na-tiene-iva').checked;
-  const ivaArs   = parseFloat(document.getElementById('na-iva-ars').value)  || 0;
-  const ivaUsd   = parseFloat(document.getElementById('na-iva-usd').value)  || 0;
-  const tc       = parseFloat(document.getElementById('na-tc').value) || 0;
-  const reg      = document.getElementById('na-registrado').value.trim();
-
   const finalArs = parseFloat(document.getElementById('na-final-ars').value) || 0;
   const finalUsd = parseFloat(document.getElementById('na-final-usd').value) || 0;
+  const tc       = parseFloat(document.getElementById('na-tc').value) || 0;
+  const reg      = document.getElementById('na-registrado').value.trim();
 
   if (!solId || !nombre || !motivo || !fecha || !reg) { showToast('Completá los campos obligatorios', 'error'); return; }
 
   const btn = document.getElementById('btn-guardar-adicional');
   btn.disabled = true; btn.textContent = 'Guardando...';
 
-  const baseEquiv = moneda === 'ARS' ? baseArs : baseUsd * tc;
-  const ivaEquiv  = moneda === 'ARS' ? ivaArs  : ivaUsd  * tc;
-  const equivArs  = baseEquiv + ivaEquiv;
+  const equivArs = moneda === 'ARS' ? (finalArs || baseArs) : (finalUsd || baseUsd) * tc;
 
   const fields = {
     [FIELDS.ADIC.nombre]:         nombre,
@@ -1464,8 +1417,6 @@ async function guardarAdicional() {
     [FIELDS.ADIC.monto_base_ars]: moneda === 'ARS' ? baseArs : 0,
     [FIELDS.ADIC.monto_base_usd]: moneda === 'USD' ? baseUsd : 0,
     [FIELDS.ADIC.tiene_iva]:      tieneIva,
-    [FIELDS.ADIC.monto_iva_ars]:  moneda === 'ARS' ? ivaArs : 0,
-    [FIELDS.ADIC.monto_iva_usd]:  moneda === 'USD' ? ivaUsd : 0,
     [FIELDS.ADIC.monto_final_ars]:moneda === 'ARS' ? finalArs : 0,
     [FIELDS.ADIC.monto_final_usd]:moneda === 'USD' ? finalUsd : 0,
     [FIELDS.ADIC.tc]:             tc || null,
