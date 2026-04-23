@@ -279,7 +279,7 @@
             <th>Final ARS</th><th>Final USD</th>
             <th>Actualizado</th><th>Pagado</th><th>Saldo</th><th>Estado</th><th>Acciones</th>
           </tr></thead>
-          <tbody id="tbody-solicitudes"><tr><td colspan="12" class="loading"><span class="spinner"></span>Cargando...</td></tr></tbody>
+          <tbody id="tbody-solicitudes"><tr><td colspan="11" class="loading"><span class="spinner"></span>Cargando...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -1071,9 +1071,9 @@ function renderSolicitudes() {
       <td><span class="pill ${moneda==='USD'?'pill-green':'pill-blue'}">${moneda||'—'}</span></td>
       <td>${moneda === 'ARS' ? ars(finalArs) : '—'}</td>
       <td>${moneda === 'USD' ? 'USD ' + Number(finalUsd).toLocaleString('es-AR',{minimumFractionDigits:2}) : '—'}</td>
-      <td>${ars(f[FIELDS.SOL.monto_vigente])}</td>
-      <td>${ars(f[FIELDS.SOL.total_pagado])}</td>
-      <td style="font-weight:500;">${ars(f[FIELDS.SOL.saldo])}</td>
+      <td>${moneda === 'ARS' ? ars(f[FIELDS.SOL.monto_vigente]) : '—'}</td>
+      <td>${moneda === 'ARS' ? ars(f[FIELDS.SOL.total_pagado]) : '—'}</td>
+      <td style="font-weight:500;">${moneda === 'ARS' ? ars(f[FIELDS.SOL.saldo]) : '—'}</td>
       <td>${estadoPill(f[FIELDS.SOL.estado])}</td>
       <td>
         <div class="actions">
