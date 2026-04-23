@@ -205,22 +205,33 @@
 
   <!-- DASHBOARD -->
   <div id="view-dashboard" class="view active">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-      <div style="font-size:13px;color:var(--text2);">Filtrar por vencimiento</div>
-      <div style="display:flex;gap:8px;align-items:center;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+      <div style="font-size:13px;color:var(--text2);">Filtros del dashboard</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <select class="form-select" id="filtro-moneda-dashboard" onchange="renderDashboard()" style="padding:5px 10px;font-size:12px;width:140px;">
+          <option value="">Todas las monedas</option>
+          <option value="ARS">Solo ARS</option>
+          <option value="USD">Solo USD</option>
+        </select>
         <select class="form-select" id="filtro-mes-dashboard" onchange="renderDashboard()" style="padding:5px 10px;font-size:12px;width:180px;">
           <option value="">Todos los meses</option>
         </select>
-        <button class="action-btn" onclick="document.getElementById('filtro-mes-dashboard').value='';renderDashboard();">Limpiar</button>
+        <button class="action-btn" onclick="document.getElementById('filtro-mes-dashboard').value='';document.getElementById('filtro-moneda-dashboard').value='';renderDashboard();">Limpiar</button>
       </div>
     </div>
-    <div class="metrics" id="metrics-dashboard" style="grid-template-columns:repeat(5,minmax(0,1fr));">
+
+    <div class="metrics" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:10px;">
       <div class="metric"><div class="metric-label">Solicitudes activas</div><div class="metric-value" id="m-activas">—</div><div class="metric-sub">con saldo pendiente</div></div>
       <div class="metric"><div class="metric-label">Vencen en 3 días</div><div class="metric-value danger" id="m-urgentes">—</div><div class="metric-sub">acción inmediata</div></div>
-      <div class="metric"><div class="metric-label">Saldo total pendiente</div><div class="metric-value warning" id="m-saldo">—</div><div class="metric-sub">ARS</div></div>
       <div class="metric"><div class="metric-label">Solicitudes pagadas</div><div class="metric-value success" id="m-pagadas">—</div><div class="metric-sub">saldo en cero</div></div>
-      <div class="metric"><div class="metric-label">Total pagado</div><div class="metric-value success" id="m-total-pagado">—</div><div class="metric-sub">ARS acumulado</div></div>
     </div>
+    <div class="metrics" style="grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:20px;">
+      <div class="metric"><div class="metric-label">Saldo pendiente ARS</div><div class="metric-value warning" id="m-saldo-ars">—</div><div class="metric-sub">pesos</div></div>
+      <div class="metric"><div class="metric-label">Total pagado ARS</div><div class="metric-value success" id="m-pagado-ars">—</div><div class="metric-sub">pesos</div></div>
+      <div class="metric"><div class="metric-label">Saldo pendiente USD</div><div class="metric-value warning" id="m-saldo-usd">—</div><div class="metric-sub">dólares</div></div>
+      <div class="metric"><div class="metric-label">Total pagado USD</div><div class="metric-value success" id="m-pagado-usd">—</div><div class="metric-sub">dólares</div></div>
+    </div>
+
     <div class="card">
       <div class="card-header">
         <div><div class="card-title">Solicitudes activas</div><div class="card-sub" id="dashboard-sub">Ordenadas por urgencia y deadline</div></div>
@@ -228,10 +239,10 @@
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th>Solicitud</th><th>Obra</th><th>Proveedor</th><th>Urgencia</th><th>Deadline</th>
-            <th>Saldo ARS</th><th>Estado</th><th>Acciones</th>
+            <th>Solicitud</th><th>Obra</th><th>Proveedor</th><th>Moneda</th><th>Urgencia</th><th>Deadline</th>
+            <th>Saldo ARS</th><th>Saldo USD</th><th>Estado</th><th>Acciones</th>
           </tr></thead>
-          <tbody id="tbody-dashboard"><tr><td colspan="8" class="loading"><span class="spinner"></span>Cargando...</td></tr></tbody>
+          <tbody id="tbody-dashboard"><tr><td colspan="10" class="loading"><span class="spinner"></span>Cargando...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -243,6 +254,11 @@
       <div class="card-header">
         <div><div class="card-title">Todas las solicitudes</div></div>
         <div style="display:flex;gap:8px;align-items:center;">
+          <select class="form-select" style="width:130px;padding:5px 8px;font-size:12px;" id="filtro-moneda-sol" onchange="renderSolicitudes()">
+            <option value="">Todas las monedas</option>
+            <option value="ARS">Solo ARS</option>
+            <option value="USD">Solo USD</option>
+          </select>
           <select class="form-select" style="width:160px;padding:5px 8px;font-size:12px;" id="filtro-estado" onchange="renderSolicitudes()">
             <option value="">Todos los estados</option>
             <option value="Pendiente aprobación">Pendiente aprobación</option>
@@ -259,10 +275,11 @@
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th>Solicitud</th><th>Obra</th><th>Proveedor</th><th>Original</th>
+            <th>Solicitud</th><th>Obra</th><th>Proveedor</th>
+            <th>Base ARS</th><th>IVA ARS</th><th>Base USD</th><th>IVA USD</th>
             <th>Actualizado</th><th>Pagado</th><th>Saldo</th><th>Estado</th><th>Acciones</th>
           </tr></thead>
-          <tbody id="tbody-solicitudes"><tr><td colspan="9" class="loading"><span class="spinner"></span>Cargando...</td></tr></tbody>
+          <tbody id="tbody-solicitudes"><tr><td colspan="12" class="loading"><span class="spinner"></span>Cargando...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -297,17 +314,40 @@
             <option value="USD">USD — Dólares</option>
           </select>
         </div>
-        <div class="form-field" id="field-monto-ars">
-          <label class="form-label">Monto original (ARS) <span class="req">*</span></label>
-          <input class="form-input" id="ns-monto-ars" type="number" placeholder="0"/>
-        </div>
-        <div class="form-field hidden" id="field-monto-usd">
-          <label class="form-label">Monto original (USD) <span class="req">*</span></label>
-          <input class="form-input" id="ns-monto-usd" type="number" placeholder="0"/>
-        </div>
         <div class="form-field hidden" id="field-tc">
           <label class="form-label">Tipo de cambio al momento</label>
           <input class="form-input" id="ns-tc" type="number" placeholder="TC del día"/>
+        </div>
+        <div class="form-field" id="field-base-ars">
+          <label class="form-label">Monto base sin IVA (ARS) <span class="req">*</span></label>
+          <input class="form-input" id="ns-base-ars" type="number" placeholder="0" oninput="calcularTotalSol()"/>
+        </div>
+        <div class="form-field hidden" id="field-base-usd">
+          <label class="form-label">Monto base sin IVA (USD) <span class="req">*</span></label>
+          <input class="form-input" id="ns-base-usd" type="number" placeholder="0" oninput="calcularTotalSol()"/>
+        </div>
+        <div class="form-field full">
+          <label class="form-label">¿Incluye IVA?</label>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:4px;">
+            <input type="checkbox" id="ns-tiene-iva" onchange="toggleIvaSol()" style="width:16px;height:16px;cursor:pointer;"/>
+            <span style="font-size:13px;color:var(--text2);">Sí, este presupuesto incluye IVA</span>
+          </div>
+        </div>
+        <div class="form-field hidden" id="field-iva-ars">
+          <label class="form-label">Monto IVA (ARS)</label>
+          <input class="form-input" id="ns-iva-ars" type="number" placeholder="0" oninput="calcularTotalSol()"/>
+        </div>
+        <div class="form-field hidden" id="field-iva-usd">
+          <label class="form-label">Monto IVA (USD)</label>
+          <input class="form-input" id="ns-iva-usd" type="number" placeholder="0" oninput="calcularTotalSol()"/>
+        </div>
+        <div class="form-field" id="field-final-ars">
+          <label class="form-label">Monto final con IVA (ARS) <span class="req">*</span></label>
+          <input class="form-input" id="ns-final-ars" type="number" placeholder="0"/>
+        </div>
+        <div class="form-field hidden" id="field-final-usd">
+          <label class="form-label">Monto final con IVA (USD) <span class="req">*</span></label>
+          <input class="form-input" id="ns-final-usd" type="number" placeholder="0"/>
         </div>
         <div class="form-field">
           <label class="form-label">Urgencia <span class="req">*</span></label>
@@ -437,17 +477,40 @@
             <option value="USD">USD</option>
           </select>
         </div>
-        <div class="form-field" id="field-adic-ars">
-          <label class="form-label">Monto (ARS) <span class="req">*</span></label>
-          <input class="form-input" id="na-monto-ars" type="number" placeholder="Positivo = extra, negativo = descuento"/>
-        </div>
-        <div class="form-field hidden" id="field-adic-usd">
-          <label class="form-label">Monto (USD) <span class="req">*</span></label>
-          <input class="form-input" id="na-monto-usd" type="number" placeholder="Positivo = extra, negativo = descuento"/>
-        </div>
         <div class="form-field hidden" id="field-adic-tc">
           <label class="form-label">Tipo de cambio</label>
           <input class="form-input" id="na-tc" type="number" placeholder="TC al momento"/>
+        </div>
+        <div class="form-field" id="field-adic-base-ars">
+          <label class="form-label">Monto base sin IVA (ARS) <span class="req">*</span></label>
+          <input class="form-input" id="na-base-ars" type="number" placeholder="Positivo = extra, negativo = descuento" oninput="calcularTotalAdic()"/>
+        </div>
+        <div class="form-field hidden" id="field-adic-base-usd">
+          <label class="form-label">Monto base sin IVA (USD) <span class="req">*</span></label>
+          <input class="form-input" id="na-base-usd" type="number" placeholder="Positivo = extra, negativo = descuento" oninput="calcularTotalAdic()"/>
+        </div>
+        <div class="form-field full">
+          <label class="form-label">¿Incluye IVA?</label>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:4px;">
+            <input type="checkbox" id="na-tiene-iva" onchange="toggleIvaAdic()" style="width:16px;height:16px;cursor:pointer;"/>
+            <span style="font-size:13px;color:var(--text2);">Sí, este adicional incluye IVA</span>
+          </div>
+        </div>
+        <div class="form-field hidden" id="field-adic-iva-ars">
+          <label class="form-label">Monto IVA (ARS)</label>
+          <input class="form-input" id="na-iva-ars" type="number" placeholder="0" oninput="calcularTotalAdic()"/>
+        </div>
+        <div class="form-field hidden" id="field-adic-iva-usd">
+          <label class="form-label">Monto IVA (USD)</label>
+          <input class="form-input" id="na-iva-usd" type="number" placeholder="0" oninput="calcularTotalAdic()"/>
+        </div>
+        <div class="form-field" id="field-adic-final-ars">
+          <label class="form-label">Monto final con IVA (ARS)</label>
+          <input class="form-input" id="na-final-ars" type="number" placeholder="0"/>
+        </div>
+        <div class="form-field hidden" id="field-adic-final-usd">
+          <label class="form-label">Monto final con IVA (USD)</label>
+          <input class="form-input" id="na-final-usd" type="number" placeholder="0"/>
         </div>
         <div class="form-field">
           <label class="form-label">Registrado por <span class="req">*</span></label>
@@ -670,8 +733,13 @@ const FIELDS = {
     obra:             'obra',
     proveedor:        'proveedor',
     concepto:         'concepto',
-    monto_orig_ars:   'monto_original_ars',
-    monto_orig_usd:   'monto_original_usd',
+    monto_base_ars:   'monto_base_ars',
+    monto_base_usd:   'monto_base_usd',
+    tiene_iva:        'tiene_iva',
+    monto_iva_ars:    'monto_iva_ars',
+    monto_iva_usd:    'monto_iva_usd',
+    monto_final_ars:  'monto_final_ars',
+    monto_final_usd:  'monto_final_usd',
     moneda:           'moneda',
     tc:               'tc_al_momento',
     urgencia:         'urgencia',
@@ -700,16 +768,21 @@ const FIELDS = {
     registrado: 'registrado_por',
   },
   ADIC: {
-    nombre:     'nombre_adicional',
-    solicitud:  'solicitud',
-    fecha:      'fecha',
-    monto_ars:  'monto_ars',
-    monto_usd:  'monto_usd',
-    moneda:     'moneda',
-    tc:         'tc_al_momento',
-    equiv_ars:  'monto_ars_equivalente',
-    motivo:     'motivo',
-    registrado: 'registrado_por',
+    nombre:         'nombre_adicional',
+    solicitud:      'solicitud',
+    fecha:          'fecha',
+    monto_base_ars: 'monto_base_ars',
+    monto_base_usd: 'monto_base_usd',
+    tiene_iva:      'tiene_iva',
+    monto_iva_ars:  'monto_iva_ars',
+    monto_iva_usd:  'monto_iva_usd',
+    monto_final_ars:'monto_final_ars',
+    monto_final_usd:'monto_final_usd',
+    moneda:         'moneda',
+    tc:             'tc_al_momento',
+    equiv_ars:      'monto_ars_equivalente',
+    motivo:         'motivo',
+    registrado:     'registrado_por',
   }
 };
 
@@ -870,7 +943,101 @@ function lookupNombre(linkedRecords, lista, tabla) {
   return rec ? getNombre(rec, tabla) : '—';
 }
 
-function populateMesFilter() {
+function renderDashboard() {
+  const filtroMes    = document.getElementById('filtro-mes-dashboard')?.value || '';
+  const filtroMoneda = document.getElementById('filtro-moneda-dashboard')?.value || '';
+
+  const activas = state.solicitudes.filter(s => {
+    const est = getVal(s.fields, FIELDS.SOL.estado);
+    if (est === 'Rechazado') return false;
+    if (filtroMes) {
+      const dl = s.fields[FIELDS.SOL.deadline];
+      if (!dl || !dl.startsWith(filtroMes)) return false;
+    }
+    if (filtroMoneda) {
+      const mon = getVal(s.fields, FIELDS.SOL.moneda);
+      if (mon !== filtroMoneda) return false;
+    }
+    return true;
+  });
+
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const urgentes = activas.filter(s => {
+    const dl = s.fields[FIELDS.SOL.deadline];
+    if (!dl) return false;
+    return Math.ceil((new Date(dl + 'T00:00:00') - hoy) / 86400000) <= 3;
+  });
+  const pagadas = activas.filter(s => getVal(s.fields, FIELDS.SOL.estado) === 'Pagado');
+
+  // ARS metrics — solicitudes en ARS
+  const activasArs = activas.filter(s => getVal(s.fields, FIELDS.SOL.moneda) === 'ARS');
+  const saldoArs   = activasArs.reduce((acc, s) => acc + (Number(s.fields[FIELDS.SOL.saldo]) || 0), 0);
+  const pagadoArs  = activasArs.reduce((acc, s) => acc + (Number(s.fields[FIELDS.SOL.total_pagado]) || 0), 0);
+
+  // USD metrics — solicitudes en USD
+  const activasUsd = activas.filter(s => getVal(s.fields, FIELDS.SOL.moneda) === 'USD');
+  const saldoUsd   = activasUsd.reduce((acc, s) => acc + (Number(s.fields[FIELDS.SOL.monto_final_usd]) || Number(s.fields[FIELDS.SOL.monto_base_usd]) || 0) - (Number(s.fields[FIELDS.SOL.total_pagado]) || 0) / (Number(s.fields[FIELDS.SOL.tc]) || 1), 0);
+  const pagadoUsd  = activasUsd.reduce((acc, s) => {
+    const tc = Number(s.fields[FIELDS.SOL.tc]) || 1;
+    return acc + (Number(s.fields[FIELDS.SOL.total_pagado]) || 0) / tc;
+  }, 0);
+
+  document.getElementById('m-activas').textContent   = activas.filter(s => getVal(s.fields, FIELDS.SOL.estado) !== 'Pagado').length;
+  document.getElementById('m-urgentes').textContent  = urgentes.length;
+  document.getElementById('m-pagadas').textContent   = pagadas.length;
+  document.getElementById('m-saldo-ars').textContent = ars(saldoArs);
+  document.getElementById('m-pagado-ars').textContent= ars(pagadoArs);
+  document.getElementById('m-saldo-usd').textContent = 'USD ' + Math.round(Math.max(0, saldoUsd)).toLocaleString('es-AR');
+  document.getElementById('m-pagado-usd').textContent= 'USD ' + Math.round(pagadoUsd).toLocaleString('es-AR');
+
+  const sub = document.getElementById('dashboard-sub');
+  const filtroLabels = [];
+  if (filtroMoneda) filtroLabels.push(filtroMoneda);
+  if (filtroMes) {
+    const [y, mo] = filtroMes.split('-');
+    filtroLabels.push(new Date(y, mo - 1).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }));
+  }
+  if (sub) sub.textContent = filtroLabels.length ? 'Filtrando: ' + filtroLabels.join(' · ') : 'Ordenadas por urgencia y deadline';
+
+  const sorted = [...activas].sort((a, b) => {
+    const urg = {Alta:0,Media:1,Baja:2};
+    const ua = urg[getVal(a.fields, FIELDS.SOL.urgencia)] ?? 3;
+    const ub = urg[getVal(b.fields, FIELDS.SOL.urgencia)] ?? 3;
+    if (ua !== ub) return ua - ub;
+    return (a.fields[FIELDS.SOL.deadline] || '9999').localeCompare(b.fields[FIELDS.SOL.deadline] || '9999');
+  });
+
+  const tbody = document.getElementById('tbody-dashboard');
+  if (!sorted.length) { tbody.innerHTML = '<tr><td colspan="10" class="empty">No hay solicitudes activas</td></tr>'; return; }
+
+  tbody.innerHTML = sorted.map(s => {
+    const f = s.fields;
+    const obraName = lookupNombre(f[FIELDS.SOL.obra], state.obras, 'obras');
+    const provName = lookupNombre(f[FIELDS.SOL.proveedor], state.proveedores, 'proveedores');
+    const moneda   = getVal(f, FIELDS.SOL.moneda);
+    const saldoArsVal = moneda === 'ARS' ? (Number(f[FIELDS.SOL.saldo]) || 0) : 0;
+    const saldoUsdVal = moneda === 'USD' ? (Number(f[FIELDS.SOL.monto_final_usd] || f[FIELDS.SOL.monto_base_usd]) || 0) : 0;
+    return `<tr>
+      <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${f[FIELDS.SOL.nombre]||''}">${f[FIELDS.SOL.nombre]||'—'}</td>
+      <td>${obraName}</td>
+      <td>${provName}</td>
+      <td><span class="pill ${moneda === 'USD' ? 'pill-green' : 'pill-blue'}">${moneda||'—'}</span></td>
+      <td>${urgSpan(f[FIELDS.SOL.urgencia])}</td>
+      <td>${deadlineSpan(f[FIELDS.SOL.deadline])}</td>
+      <td style="font-weight:500;">${moneda === 'ARS' ? ars(saldoArsVal) : '—'}</td>
+      <td style="font-weight:500;">${moneda === 'USD' ? 'USD ' + saldoUsdVal.toLocaleString('es-AR',{minimumFractionDigits:2}) : '—'}</td>
+      <td>${estadoPill(f[FIELDS.SOL.estado])}</td>
+      <td>
+        <div class="actions">
+          <button class="action-btn primary" onclick="irAPago('${s.id}')">+ Pago</button>
+          <button class="action-btn" onclick="abrirModalEstado('${s.id}')">Estado</button>
+          <button class="action-btn" onclick="irAAdic('${s.id}')">+ Adicional</button>
+          <button class="action-btn" onclick="abrirModalUrgencia('${s.id}')">Editar</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
   const meses = new Set();
   state.solicitudes.forEach(s => {
     const dl = s.fields[FIELDS.SOL.deadline];
@@ -964,9 +1131,11 @@ function renderDashboard() {
 function renderSolicitudes() {
   const filtroEstado = document.getElementById('filtro-estado')?.value || '';
   const filtroObra   = document.getElementById('filtro-obra')?.value   || '';
+  const filtroMoneda = document.getElementById('filtro-moneda-sol')?.value || '';
 
   let lista = [...state.solicitudes];
   if (filtroEstado) lista = lista.filter(s => getVal(s.fields, FIELDS.SOL.estado) === filtroEstado);
+  if (filtroMoneda) lista = lista.filter(s => getVal(s.fields, FIELDS.SOL.moneda) === filtroMoneda);
   if (filtroObra)   lista = lista.filter(s => {
     const ids = s.fields[FIELDS.SOL.obra] || [];
     return ids.includes(filtroObra);
@@ -979,17 +1148,20 @@ function renderSolicitudes() {
   });
 
   const tbody = document.getElementById('tbody-solicitudes');
-  if (!lista.length) { tbody.innerHTML = '<tr><td colspan="9" class="empty">No hay solicitudes</td></tr>'; return; }
+  if (!lista.length) { tbody.innerHTML = '<tr><td colspan="12" class="empty">No hay solicitudes</td></tr>'; return; }
 
   tbody.innerHTML = lista.map(s => {
     const f = s.fields;
     const obraName = lookupNombre(f[FIELDS.SOL.obra], state.obras, 'obras');
     const provName = lookupNombre(f[FIELDS.SOL.proveedor], state.proveedores, 'proveedores');
     return `<tr>
-      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f[FIELDS.SOL.nombre]||'—'}</td>
+      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f[FIELDS.SOL.nombre]||'—'}</td>
       <td>${obraName}</td>
       <td>${provName}</td>
-      <td>${ars(f[FIELDS.SOL.monto_orig_ars] || f[FIELDS.SOL.monto_orig_usd])}</td>
+      <td>${ars(f[FIELDS.SOL.monto_base_ars])}</td>
+      <td style="color:var(--text2);font-size:12px;">${f[FIELDS.SOL.tiene_iva] ? ars(f[FIELDS.SOL.monto_iva_ars]) : '—'}</td>
+      <td>${f[FIELDS.SOL.monto_base_usd] ? 'USD ' + Number(f[FIELDS.SOL.monto_base_usd]).toLocaleString('es-AR',{minimumFractionDigits:2}) : '—'}</td>
+      <td style="color:var(--text2);font-size:12px;">${f[FIELDS.SOL.tiene_iva] && f[FIELDS.SOL.monto_iva_usd] ? 'USD ' + Number(f[FIELDS.SOL.monto_iva_usd]).toLocaleString('es-AR',{minimumFractionDigits:2}) : '—'}</td>
       <td>${ars(f[FIELDS.SOL.monto_vigente])}</td>
       <td>${ars(f[FIELDS.SOL.total_pagado])}</td>
       <td style="font-weight:500;">${ars(f[FIELDS.SOL.saldo])}</td>
@@ -1156,10 +1328,22 @@ async function confirmarUrgencia() {
 // ============================================================
 function toggleMoneda() {
   const moneda = document.getElementById('ns-moneda').value;
-  document.getElementById('field-monto-ars').classList.toggle('hidden', moneda === 'USD');
-  document.getElementById('field-monto-usd').classList.toggle('hidden', moneda === 'ARS');
+  document.getElementById('field-base-ars').classList.toggle('hidden', moneda === 'USD');
+  document.getElementById('field-base-usd').classList.toggle('hidden', moneda === 'ARS');
   document.getElementById('field-tc').classList.toggle('hidden', moneda === 'ARS');
+  document.getElementById('field-final-ars').classList.toggle('hidden', moneda === 'USD');
+  document.getElementById('field-final-usd').classList.toggle('hidden', moneda === 'ARS');
+  const tieneIva = document.getElementById('ns-tiene-iva').checked;
+  document.getElementById('field-iva-ars').classList.toggle('hidden', moneda !== 'ARS' || !tieneIva);
+  document.getElementById('field-iva-usd').classList.toggle('hidden', moneda !== 'USD' || !tieneIva);
 }
+function toggleIvaSol() {
+  const moneda = document.getElementById('ns-moneda').value;
+  const tieneIva = document.getElementById('ns-tiene-iva').checked;
+  document.getElementById('field-iva-ars').classList.toggle('hidden', moneda !== 'ARS' || !tieneIva);
+  document.getElementById('field-iva-usd').classList.toggle('hidden', moneda !== 'USD' || !tieneIva);
+}
+function calcularTotalSol() {}
 function toggleFechaEntrega() {
   const val = document.getElementById('ns-condicion-stop').value;
   document.getElementById('field-fecha-entrega').classList.toggle('hidden', val !== 'Fecha de entrega del proveedor');
@@ -1171,8 +1355,11 @@ async function guardarSolicitud() {
   const prov     = document.getElementById('ns-proveedor').value;
   const concepto = document.getElementById('ns-concepto').value.trim();
   const moneda   = document.getElementById('ns-moneda').value;
-  const montArs  = parseFloat(document.getElementById('ns-monto-ars').value) || 0;
-  const montUsd  = parseFloat(document.getElementById('ns-monto-usd').value) || 0;
+  const baseArs  = parseFloat(document.getElementById('ns-base-ars').value) || 0;
+  const baseUsd  = parseFloat(document.getElementById('ns-base-usd').value) || 0;
+  const tieneIva = document.getElementById('ns-tiene-iva').checked;
+  const ivaArs   = parseFloat(document.getElementById('ns-iva-ars').value) || 0;
+  const ivaUsd   = parseFloat(document.getElementById('ns-iva-usd').value) || 0;
   const tc       = parseFloat(document.getElementById('ns-tc').value) || 0;
   const urgencia = document.getElementById('ns-urgencia').value;
   const deadline = document.getElementById('ns-deadline').value;
@@ -1182,29 +1369,42 @@ async function guardarSolicitud() {
   const arqEmail = document.getElementById('ns-email').value.trim();
   const obs      = document.getElementById('ns-obs').value.trim();
 
+  const finalArs = parseFloat(document.getElementById('ns-final-ars').value) || 0;
+  const finalUsd = parseFloat(document.getElementById('ns-final-usd').value) || 0;
+
+  const montoBase = moneda === 'ARS' ? baseArs : baseUsd * tc;
+  const montoIva  = moneda === 'ARS' ? ivaArs  : ivaUsd  * tc;
+
   if (!nombre || !obra || !prov || !concepto || !urgencia || !deadline || !arqNom || !arqEmail) {
     showToast('Completá todos los campos obligatorios', 'error'); return;
   }
+  if (moneda === 'ARS' && !baseArs) { showToast('Ingresá el monto base en ARS', 'error'); return; }
+  if (moneda === 'USD' && !baseUsd) { showToast('Ingresá el monto base en USD', 'error'); return; }
 
   const btn = document.getElementById('btn-guardar-solicitud');
   btn.disabled = true; btn.textContent = 'Guardando...';
 
   const fields = {
-    [FIELDS.SOL.nombre]:         nombre,
-    [FIELDS.SOL.obra]:           [obra],
-    [FIELDS.SOL.proveedor]:      [prov],
-    [FIELDS.SOL.concepto]:       concepto,
-    [FIELDS.SOL.moneda]:         moneda,
-    [FIELDS.SOL.monto_orig_ars]: moneda === 'ARS' ? montArs : (montUsd * tc),
-    [FIELDS.SOL.monto_orig_usd]: moneda === 'USD' ? montUsd : 0,
-    [FIELDS.SOL.tc]:             tc || null,
-    [FIELDS.SOL.urgencia]:       urgencia,
-    [FIELDS.SOL.deadline]:       deadline,
-    [FIELDS.SOL.condicion_stop]: stop,
-    [FIELDS.SOL.estado]:         'Pendiente aprobación',
-    [FIELDS.SOL.arq_nombre]:     arqNom,
-    [FIELDS.SOL.arq_email]:      arqEmail,
-    [FIELDS.SOL.obs]:            obs || null,
+    [FIELDS.SOL.nombre]:          nombre,
+    [FIELDS.SOL.obra]:            [obra],
+    [FIELDS.SOL.proveedor]:       [prov],
+    [FIELDS.SOL.concepto]:        concepto,
+    [FIELDS.SOL.moneda]:          moneda,
+    [FIELDS.SOL.monto_base_ars]:  moneda === 'ARS' ? baseArs : 0,
+    [FIELDS.SOL.monto_base_usd]:  moneda === 'USD' ? baseUsd : 0,
+    [FIELDS.SOL.tiene_iva]:       tieneIva,
+    [FIELDS.SOL.monto_iva_ars]:   moneda === 'ARS' ? ivaArs : 0,
+    [FIELDS.SOL.monto_iva_usd]:   moneda === 'USD' ? ivaUsd : 0,
+    [FIELDS.SOL.monto_final_ars]: moneda === 'ARS' ? finalArs : 0,
+    [FIELDS.SOL.monto_final_usd]: moneda === 'USD' ? finalUsd : 0,
+    [FIELDS.SOL.tc]:              tc || null,
+    [FIELDS.SOL.urgencia]:        urgencia,
+    [FIELDS.SOL.deadline]:        deadline,
+    [FIELDS.SOL.condicion_stop]:  stop,
+    [FIELDS.SOL.estado]:          'Pendiente aprobación',
+    [FIELDS.SOL.arq_nombre]:      arqNom,
+    [FIELDS.SOL.arq_email]:       arqEmail,
+    [FIELDS.SOL.obs]:             obs || null,
   };
   if (entrega && stop === 'Fecha de entrega del proveedor') fields[FIELDS.SOL.fecha_entrega] = entrega;
 
@@ -1286,39 +1486,65 @@ async function guardarPago() {
 // ============================================================
 function toggleMonedaAdic() {
   const m = document.getElementById('na-moneda').value;
-  document.getElementById('field-adic-ars').classList.toggle('hidden', m === 'USD');
-  document.getElementById('field-adic-usd').classList.toggle('hidden', m === 'ARS');
+  document.getElementById('field-adic-base-ars').classList.toggle('hidden', m === 'USD');
+  document.getElementById('field-adic-base-usd').classList.toggle('hidden', m === 'ARS');
   document.getElementById('field-adic-tc').classList.toggle('hidden', m === 'ARS');
+  document.getElementById('field-adic-final-ars').classList.toggle('hidden', m === 'USD');
+  document.getElementById('field-adic-final-usd').classList.toggle('hidden', m === 'ARS');
+  const tieneIva = document.getElementById('na-tiene-iva').checked;
+  document.getElementById('field-adic-iva-ars').classList.toggle('hidden', m !== 'ARS' || !tieneIva);
+  document.getElementById('field-adic-iva-usd').classList.toggle('hidden', m !== 'USD' || !tieneIva);
 }
+function toggleIvaAdic() {
+  const m = document.getElementById('na-moneda').value;
+  const tieneIva = document.getElementById('na-tiene-iva').checked;
+  document.getElementById('field-adic-iva-ars').classList.toggle('hidden', m !== 'ARS' || !tieneIva);
+  document.getElementById('field-adic-iva-usd').classList.toggle('hidden', m !== 'USD' || !tieneIva);
+}
+function calcularTotalAdic() {}
 
 async function guardarAdicional() {
-  const solId   = document.getElementById('na-solicitud').value;
-  const nombre  = document.getElementById('na-nombre').value.trim();
-  const motivo  = document.getElementById('na-motivo').value.trim();
-  const fecha   = document.getElementById('na-fecha').value;
-  const moneda  = document.getElementById('na-moneda').value;
-  const montArs = parseFloat(document.getElementById('na-monto-ars').value) || 0;
-  const montUsd = parseFloat(document.getElementById('na-monto-usd').value) || 0;
-  const tc      = parseFloat(document.getElementById('na-tc').value) || 0;
-  const reg     = document.getElementById('na-registrado').value.trim();
+  const solId    = document.getElementById('na-solicitud').value;
+  const nombre   = document.getElementById('na-nombre').value.trim();
+  const motivo   = document.getElementById('na-motivo').value.trim();
+  const fecha    = document.getElementById('na-fecha').value;
+  const moneda   = document.getElementById('na-moneda').value;
+  const baseArs  = parseFloat(document.getElementById('na-base-ars').value) || 0;
+  const baseUsd  = parseFloat(document.getElementById('na-base-usd').value) || 0;
+  const tieneIva = document.getElementById('na-tiene-iva').checked;
+  const ivaArs   = parseFloat(document.getElementById('na-iva-ars').value)  || 0;
+  const ivaUsd   = parseFloat(document.getElementById('na-iva-usd').value)  || 0;
+  const tc       = parseFloat(document.getElementById('na-tc').value) || 0;
+  const reg      = document.getElementById('na-registrado').value.trim();
+
+  const finalArs = parseFloat(document.getElementById('na-final-ars').value) || 0;
+  const finalUsd = parseFloat(document.getElementById('na-final-usd').value) || 0;
 
   if (!solId || !nombre || !motivo || !fecha || !reg) { showToast('Completá los campos obligatorios', 'error'); return; }
 
   const btn = document.getElementById('btn-guardar-adicional');
   btn.disabled = true; btn.textContent = 'Guardando...';
 
-  const equivArs = moneda === 'ARS' ? montArs : (montUsd * tc);
+  const baseEquiv = moneda === 'ARS' ? baseArs : baseUsd * tc;
+  const ivaEquiv  = moneda === 'ARS' ? ivaArs  : ivaUsd  * tc;
+  const equivArs  = baseEquiv + ivaEquiv;
+
   const fields = {
-    [FIELDS.ADIC.nombre]:     nombre,
-    [FIELDS.ADIC.solicitud]:  [solId],
-    [FIELDS.ADIC.fecha]:      fecha,
-    [FIELDS.ADIC.moneda]:     moneda,
-    [FIELDS.ADIC.monto_ars]:  moneda === 'ARS' ? montArs : 0,
-    [FIELDS.ADIC.monto_usd]:  moneda === 'USD' ? montUsd : 0,
-    [FIELDS.ADIC.tc]:         tc || null,
-    [FIELDS.ADIC.equiv_ars]:  equivArs,
-    [FIELDS.ADIC.motivo]:     motivo,
-    [FIELDS.ADIC.registrado]: reg,
+    [FIELDS.ADIC.nombre]:         nombre,
+    [FIELDS.ADIC.solicitud]:      [solId],
+    [FIELDS.ADIC.fecha]:          fecha,
+    [FIELDS.ADIC.moneda]:         moneda,
+    [FIELDS.ADIC.monto_base_ars]: moneda === 'ARS' ? baseArs : 0,
+    [FIELDS.ADIC.monto_base_usd]: moneda === 'USD' ? baseUsd : 0,
+    [FIELDS.ADIC.tiene_iva]:      tieneIva,
+    [FIELDS.ADIC.monto_iva_ars]:  moneda === 'ARS' ? ivaArs : 0,
+    [FIELDS.ADIC.monto_iva_usd]:  moneda === 'USD' ? ivaUsd : 0,
+    [FIELDS.ADIC.monto_final_ars]:moneda === 'ARS' ? finalArs : 0,
+    [FIELDS.ADIC.monto_final_usd]:moneda === 'USD' ? finalUsd : 0,
+    [FIELDS.ADIC.tc]:             tc || null,
+    [FIELDS.ADIC.equiv_ars]:      equivArs,
+    [FIELDS.ADIC.motivo]:         motivo,
+    [FIELDS.ADIC.registrado]:     reg,
   };
 
   try {
