@@ -1064,6 +1064,9 @@ function renderSolicitudes() {
     const moneda = getVal(f, FIELDS.SOL.moneda);
     const finalArs = f[FIELDS.SOL.monto_final_ars] || f[FIELDS.SOL.monto_base_ars] || 0;
     const finalUsd = f[FIELDS.SOL.monto_final_usd] || f[FIELDS.SOL.monto_base_usd] || 0;
+    const vigenteDisplay = moneda === 'ARS'
+      ? ars(f[FIELDS.SOL.monto_vigente])
+      : 'USD ' + Number(finalUsd).toLocaleString('es-AR', {minimumFractionDigits:2});
     return `<tr>
       <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f[FIELDS.SOL.nombre]||'—'}</td>
       <td>${obraName}</td>
@@ -1071,7 +1074,7 @@ function renderSolicitudes() {
       <td><span class="pill ${moneda==='USD'?'pill-green':'pill-blue'}">${moneda||'—'}</span></td>
       <td>${moneda === 'ARS' ? ars(finalArs) : '—'}</td>
       <td>${moneda === 'USD' ? 'USD ' + Number(finalUsd).toLocaleString('es-AR',{minimumFractionDigits:2}) : '—'}</td>
-      <td>${moneda === 'ARS' ? ars(f[FIELDS.SOL.monto_vigente]) : '—'}</td>
+      <td>${vigenteDisplay}</td>
       <td>${moneda === 'ARS' ? ars(f[FIELDS.SOL.total_pagado]) : '—'}</td>
       <td style="font-weight:500;">${moneda === 'ARS' ? ars(f[FIELDS.SOL.saldo]) : '—'}</td>
       <td>${estadoPill(f[FIELDS.SOL.estado])}</td>
