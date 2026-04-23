@@ -1038,10 +1038,12 @@ function renderDashboard() {
     </tr>`;
   }).join('');
 }
+
+function populateMesFilter() {
   const meses = new Set();
   state.solicitudes.forEach(s => {
     const dl = s.fields[FIELDS.SOL.deadline];
-    if (dl) meses.add(dl.slice(0, 7)); // YYYY-MM
+    if (dl) meses.add(dl.slice(0, 7));
   });
   const sel = document.getElementById('filtro-mes-dashboard');
   const current = sel.value;
@@ -1051,81 +1053,6 @@ function renderDashboard() {
       const label = new Date(y, mo - 1).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
       return `<option value="${m}" ${current === m ? 'selected' : ''}>${label}</option>`;
     }).join('');
-}
-
-function renderDashboard() {
-  const filtroMes = document.getElementById('filtro-mes-dashboard')?.value || '';
-
-  const activas = state.solicitudes.filter(s => {
-    const est = getVal(s.fields, FIELDS.SOL.estado);
-    if (est === 'Rechazado') return false;
-    if (filtroMes) {
-      const dl = s.fields[FIELDS.SOL.deadline];
-      if (!dl || !dl.startsWith(filtroMes)) return false;
-    }
-    return true;
-  });
-  const hoy = new Date(); hoy.setHours(0,0,0,0);
-  const urgentes = activas.filter(s => {
-    const dl = s.fields[FIELDS.SOL.deadline];
-    if (!dl) return false;
-    const d = new Date(dl + 'T00:00:00');
-    return Math.ceil((d - hoy) / 86400000) <= 3;
-  });
-  const pagadas    = activas.filter(s => getVal(s.fields, FIELDS.SOL.estado) === 'Pagado');
-  const saldoTotal = activas.reduce((acc, s) => acc + (Number(s.fields[FIELDS.SOL.saldo]) || 0), 0);
-  const totalPagado = state.solicitudes.reduce((acc, s) => acc + (Number(s.fields[FIELDS.SOL.total_pagado]) || 0), 0);
-
-  document.getElementById('m-activas').textContent     = activas.filter(s => getVal(s.fields, FIELDS.SOL.estado) !== 'Pagado').length;
-  document.getElementById('m-urgentes').textContent    = urgentes.length;
-  document.getElementById('m-saldo').textContent       = ars(saldoTotal);
-  document.getElementById('m-pagadas').textContent     = pagadas.length;
-  document.getElementById('m-total-pagado').textContent = ars(totalPagado);
-
-  const sub = document.getElementById('dashboard-sub');
-  if (filtroMes && sub) {
-    const [y, mo] = filtroMes.split('-');
-    const label = new Date(y, mo - 1).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
-    sub.textContent = `Filtrando por vencimiento: ${label}`;
-  } else if (sub) {
-    sub.textContent = 'Ordenadas por urgencia y deadline';
-  }
-
-  const sorted = [...activas].sort((a, b) => {
-    const urg = {Alta:0,Media:1,Baja:2};
-    const ua = urg[getVal(a.fields, FIELDS.SOL.urgencia)] ?? 3;
-    const ub = urg[getVal(b.fields, FIELDS.SOL.urgencia)] ?? 3;
-    if (ua !== ub) return ua - ub;
-    const da = a.fields[FIELDS.SOL.deadline] || '9999';
-    const db = b.fields[FIELDS.SOL.deadline] || '9999';
-    return da.localeCompare(db);
-  });
-
-  const tbody = document.getElementById('tbody-dashboard');
-  if (!sorted.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty">No hay solicitudes activas</td></tr>'; return; }
-
-  tbody.innerHTML = sorted.map(s => {
-    const f = s.fields;
-    const obraName = lookupNombre(f[FIELDS.SOL.obra], state.obras, 'obras');
-    const provName = lookupNombre(f[FIELDS.SOL.proveedor], state.proveedores, 'proveedores');
-    return `<tr>
-      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${f[FIELDS.SOL.nombre]||''}">${f[FIELDS.SOL.nombre]||'—'}</td>
-      <td>${obraName}</td>
-      <td>${provName}</td>
-      <td>${urgSpan(f[FIELDS.SOL.urgencia])}</td>
-      <td>${deadlineSpan(f[FIELDS.SOL.deadline])}</td>
-      <td style="font-weight:500;">${ars(f[FIELDS.SOL.saldo])}</td>
-      <td>${estadoPill(f[FIELDS.SOL.estado])}</td>
-      <td>
-        <div class="actions">
-          <button class="action-btn primary" onclick="irAPago('${s.id}')">+ Pago</button>
-          <button class="action-btn" onclick="abrirModalEstado('${s.id}')">Estado</button>
-          <button class="action-btn" onclick="irAAdic('${s.id}')">+ Adicional</button>
-          <button class="action-btn" onclick="abrirModalUrgencia('${s.id}')">Editar</button>
-        </div>
-      </td>
-    </tr>`;
-  }).join('');
 }
 
 function renderSolicitudes() {
