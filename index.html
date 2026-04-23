@@ -250,7 +250,7 @@
         <table>
           <thead><tr>
             <th>Solicitud</th><th>Obra</th><th>Proveedor</th><th>Original</th>
-            <th>Vigente</th><th>Pagado</th><th>Saldo</th><th>Estado</th><th>Acciones</th>
+            <th>Actualizado</th><th>Pagado</th><th>Saldo</th><th>Estado</th><th>Acciones</th>
           </tr></thead>
           <tbody id="tbody-solicitudes"><tr><td colspan="9" class="loading"><span class="spinner"></span>Cargando...</td></tr></tbody>
         </table>
@@ -940,7 +940,6 @@ function renderSolicitudes() {
     const f = s.fields;
     const obraName = lookupNombre(f[FIELDS.SOL.obra], state.obras, 'obras');
     const provName = lookupNombre(f[FIELDS.SOL.proveedor], state.proveedores, 'proveedores');
-    const pagado   = state.solicitudes.find(x => x.id === s.id)?.fields[FIELDS.SOL.total_pagado] || 0;
     return `<tr>
       <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f[FIELDS.SOL.nombre]||'—'}</td>
       <td>${obraName}</td>
@@ -952,8 +951,10 @@ function renderSolicitudes() {
       <td>${estadoPill(f[FIELDS.SOL.estado])}</td>
       <td>
         <div class="actions">
-          <button class="action-btn" onclick="abrirModalEstado('${s.id}')">Estado</button>
           <button class="action-btn primary" onclick="irAPago('${s.id}')">+ Pago</button>
+          <button class="action-btn" onclick="abrirModalEstado('${s.id}')">Estado</button>
+          <button class="action-btn" onclick="irAAdic('${s.id}')">+ Adicional</button>
+          <button class="action-btn" onclick="abrirModalUrgencia('${s.id}')">Editar</button>
         </div>
       </td>
     </tr>`;
