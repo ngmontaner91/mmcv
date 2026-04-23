@@ -205,15 +205,25 @@
 
   <!-- DASHBOARD -->
   <div id="view-dashboard" class="view active">
-    <div class="metrics" id="metrics-dashboard">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div style="font-size:13px;color:var(--text2);">Filtrar por vencimiento</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <select class="form-select" id="filtro-mes-dashboard" onchange="renderDashboard()" style="padding:5px 10px;font-size:12px;width:180px;">
+          <option value="">Todos los meses</option>
+        </select>
+        <button class="action-btn" onclick="document.getElementById('filtro-mes-dashboard').value='';renderDashboard();">Limpiar</button>
+      </div>
+    </div>
+    <div class="metrics" id="metrics-dashboard" style="grid-template-columns:repeat(5,minmax(0,1fr));">
       <div class="metric"><div class="metric-label">Solicitudes activas</div><div class="metric-value" id="m-activas">—</div><div class="metric-sub">con saldo pendiente</div></div>
       <div class="metric"><div class="metric-label">Vencen en 3 días</div><div class="metric-value danger" id="m-urgentes">—</div><div class="metric-sub">acción inmediata</div></div>
       <div class="metric"><div class="metric-label">Saldo total pendiente</div><div class="metric-value warning" id="m-saldo">—</div><div class="metric-sub">ARS</div></div>
       <div class="metric"><div class="metric-label">Solicitudes pagadas</div><div class="metric-value success" id="m-pagadas">—</div><div class="metric-sub">saldo en cero</div></div>
+      <div class="metric"><div class="metric-label">Total pagado</div><div class="metric-value success" id="m-total-pagado">—</div><div class="metric-sub">ARS acumulado</div></div>
     </div>
     <div class="card">
       <div class="card-header">
-        <div><div class="card-title">Solicitudes activas</div><div class="card-sub">Ordenadas por urgencia y deadline</div></div>
+        <div><div class="card-title">Solicitudes activas</div><div class="card-sub" id="dashboard-sub">Ordenadas por urgencia y deadline</div></div>
       </div>
       <div class="table-wrap">
         <table>
@@ -793,6 +803,7 @@ async function loadAll() {
 // RENDER
 // ============================================================
 function renderAll() {
+  populateMesFilter();
   renderDashboard();
   renderSolicitudes();
   renderMaestros();
@@ -859,10 +870,33 @@ function lookupNombre(linkedRecords, lista, tabla) {
   return rec ? getNombre(rec, tabla) : '—';
 }
 
+function populateMesFilter() {
+  const meses = new Set();
+  state.solicitudes.forEach(s => {
+    const dl = s.fields[FIELDS.SOL.deadline];
+    if (dl) meses.add(dl.slice(0, 7)); // YYYY-MM
+  });
+  const sel = document.getElementById('filtro-mes-dashboard');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">Todos los meses</option>' +
+    [...meses].sort().map(m => {
+      const [y, mo] = m.split('-');
+      const label = new Date(y, mo - 1).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+      return `<option value="${m}" ${current === m ? 'selected' : ''}>${label}</option>`;
+    }).join('');
+}
+
 function renderDashboard() {
+  const filtroMes = document.getElementById('filtro-mes-dashboard')?.value || '';
+
   const activas = state.solicitudes.filter(s => {
     const est = getVal(s.fields, FIELDS.SOL.estado);
-    return est !== 'Rechazado';
+    if (est === 'Rechazado') return false;
+    if (filtroMes) {
+      const dl = s.fields[FIELDS.SOL.deadline];
+      if (!dl || !dl.startsWith(filtroMes)) return false;
+    }
+    return true;
   });
   const hoy = new Date(); hoy.setHours(0,0,0,0);
   const urgentes = activas.filter(s => {
@@ -871,13 +905,24 @@ function renderDashboard() {
     const d = new Date(dl + 'T00:00:00');
     return Math.ceil((d - hoy) / 86400000) <= 3;
   });
-  const pagadas = state.solicitudes.filter(s => getVal(s.fields, FIELDS.SOL.estado) === 'Pagado');
+  const pagadas    = activas.filter(s => getVal(s.fields, FIELDS.SOL.estado) === 'Pagado');
   const saldoTotal = activas.reduce((acc, s) => acc + (Number(s.fields[FIELDS.SOL.saldo]) || 0), 0);
+  const totalPagado = state.solicitudes.reduce((acc, s) => acc + (Number(s.fields[FIELDS.SOL.total_pagado]) || 0), 0);
 
-  document.getElementById('m-activas').textContent  = activas.filter(s => getVal(s.fields, FIELDS.SOL.estado) !== 'Pagado').length;
-  document.getElementById('m-urgentes').textContent = urgentes.length;
-  document.getElementById('m-saldo').textContent    = ars(saldoTotal);
-  document.getElementById('m-pagadas').textContent  = pagadas.length;
+  document.getElementById('m-activas').textContent     = activas.filter(s => getVal(s.fields, FIELDS.SOL.estado) !== 'Pagado').length;
+  document.getElementById('m-urgentes').textContent    = urgentes.length;
+  document.getElementById('m-saldo').textContent       = ars(saldoTotal);
+  document.getElementById('m-pagadas').textContent     = pagadas.length;
+  document.getElementById('m-total-pagado').textContent = ars(totalPagado);
+
+  const sub = document.getElementById('dashboard-sub');
+  if (filtroMes && sub) {
+    const [y, mo] = filtroMes.split('-');
+    const label = new Date(y, mo - 1).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+    sub.textContent = `Filtrando por vencimiento: ${label}`;
+  } else if (sub) {
+    sub.textContent = 'Ordenadas por urgencia y deadline';
+  }
 
   const sorted = [...activas].sort((a, b) => {
     const urg = {Alta:0,Media:1,Baja:2};
