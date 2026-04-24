@@ -355,15 +355,16 @@
         </div>
         <div class="form-field">
           <label class="form-label">Condición de stop</label>
-          <select class="form-select" id="ns-condicion-stop" onchange="toggleFechaEntrega()">
+          <select class="form-select" id="ns-condicion-stop">
             <option value="Saldo = 0">Saldo = 0 (automático)</option>
             <option value="Fecha de entrega del proveedor">Fecha de entrega del proveedor</option>
             <option value="Stop manual">Stop manual</option>
           </select>
         </div>
-        <div class="form-field hidden" id="field-fecha-entrega">
-          <label class="form-label">Fecha de entrega del proveedor</label>
-          <input class="form-input" id="ns-fecha-entrega" type="date"/>
+        <div class="form-field">
+          <label class="form-label">Días de entrega desde el primer pago</label>
+          <input class="form-input" id="ns-dias-entrega" type="number" placeholder="Ej: 30"/>
+          <div class="form-hint">La fecha de entrega se calcula automáticamente al registrar el primer pago</div>
         </div>
         <div class="form-field">
           <label class="form-label">Arquitecto/a responsable <span class="req">*</span></label>
@@ -372,6 +373,11 @@
         <div class="form-field">
           <label class="form-label">Email del arquitecto/a <span class="req">*</span></label>
           <input class="form-input" id="ns-email" type="email" placeholder="email@gmail.com"/>
+        </div>
+        <div class="form-field full">
+          <label class="form-label">Link al presupuesto</label>
+          <input class="form-input" id="ns-link-doc" type="url" placeholder="https://drive.google.com/..."/>
+          <div class="form-hint">Pegá el link de Google Drive u otro servicio donde esté el documento</div>
         </div>
         <div class="form-field full">
           <label class="form-label">Observaciones</label>
@@ -668,8 +674,13 @@
         </select>
       </div>
       <div class="form-field">
-        <label class="form-label">Fecha entrega proveedor</label>
+        <label class="form-label">Días de entrega desde primer pago</label>
+        <input class="form-input" id="modal-dias-entrega" type="number" placeholder="Ej: 30"/>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Fecha entrega calculada</label>
         <input class="form-input" id="modal-fecha-entrega" type="date"/>
+        <div class="form-hint" style="margin-top:4px;">Se calcula automáticamente al primer pago. Podés ajustarla acá.</div>
       </div>
     </div>
     <div class="modal-actions">
@@ -727,7 +738,9 @@ const FIELDS = {
     urgencia:         'urgencia',
     deadline:         'deadline',
     condicion_stop:   'condicion_stop',
+    dias_entrega:     'dias_entrega',
     fecha_entrega:    'fecha_entrega_proveedor',
+    link_documento:   'link_documento',
     estado:           'estado',
     fecha_aprobacion: 'fecha_aprobacion',
     arq_nombre:       'arquitecto_nombre',
@@ -1216,6 +1229,7 @@ function abrirModalUrgencia(solicitudId) {
   document.getElementById('modal-urgencia-val').value    = getVal(f, FIELDS.SOL.urgencia) || 'Media';
   document.getElementById('modal-deadline-val').value    = f[FIELDS.SOL.deadline] || '';
   document.getElementById('modal-condicion-stop').value  = getVal(f, FIELDS.SOL.condicion_stop) || 'Saldo = 0';
+  document.getElementById('modal-dias-entrega').value    = f[FIELDS.SOL.dias_entrega] || '';
   document.getElementById('modal-fecha-entrega').value   = f[FIELDS.SOL.fecha_entrega] || '';
   openModal('modal-urgencia');
 }
@@ -1225,6 +1239,7 @@ async function confirmarUrgencia() {
     [FIELDS.SOL.urgencia]:       document.getElementById('modal-urgencia-val').value,
     [FIELDS.SOL.deadline]:       document.getElementById('modal-deadline-val').value || null,
     [FIELDS.SOL.condicion_stop]: document.getElementById('modal-condicion-stop').value,
+    [FIELDS.SOL.dias_entrega]:   parseInt(document.getElementById('modal-dias-entrega').value) || null,
     [FIELDS.SOL.fecha_entrega]:  document.getElementById('modal-fecha-entrega').value || null,
   };
   try {
@@ -1248,11 +1263,6 @@ function toggleMoneda() {
 }
 function toggleIvaSol() {}
 function calcularTotalSol() {}
-function toggleFechaEntrega() {
-  const val = document.getElementById('ns-condicion-stop').value;
-  document.getElementById('field-fecha-entrega').classList.toggle('hidden', val !== 'Fecha de entrega del proveedor');
-}
-
 async function guardarSolicitud() {
   const nombre   = document.getElementById('ns-nombre').value.trim();
   const obra     = document.getElementById('ns-obra').value;
@@ -1268,10 +1278,12 @@ async function guardarSolicitud() {
   const urgencia = document.getElementById('ns-urgencia').value;
   const deadline = document.getElementById('ns-deadline').value;
   const stop     = document.getElementById('ns-condicion-stop').value;
-  const entrega  = document.getElementById('ns-fecha-entrega').value;
   const arqNom   = document.getElementById('ns-arquitecto').value.trim();
   const arqEmail = document.getElementById('ns-email').value.trim();
   const obs      = document.getElementById('ns-obs').value.trim();
+
+  const diasEntrega = parseInt(document.getElementById('ns-dias-entrega').value) || null;
+  const linkDoc     = document.getElementById('ns-link-doc').value.trim() || null;
 
   if (!nombre || !obra || !prov || !concepto || !urgencia || !deadline || !arqNom || !arqEmail) {
     showToast('Completá todos los campos obligatorios', 'error'); return;
@@ -1297,12 +1309,13 @@ async function guardarSolicitud() {
     [FIELDS.SOL.urgencia]:        urgencia,
     [FIELDS.SOL.deadline]:        deadline,
     [FIELDS.SOL.condicion_stop]:  stop,
+    [FIELDS.SOL.dias_entrega]:    diasEntrega,
+    [FIELDS.SOL.link_documento]:  linkDoc,
     [FIELDS.SOL.estado]:          'Pendiente aprobación',
     [FIELDS.SOL.arq_nombre]:      arqNom,
     [FIELDS.SOL.arq_email]:       arqEmail,
     [FIELDS.SOL.obs]:             obs || null,
   };
-  if (entrega && stop === 'Fecha de entrega del proveedor') fields[FIELDS.SOL.fecha_entrega] = entrega;
 
   try {
     await createRecord(TABLES.SOLICITUDES, fields);
@@ -1357,13 +1370,23 @@ async function guardarPago() {
 
   try {
     await createRecord(TABLES.PAGOS, fields);
-    // Actualizar estado de la solicitud si corresponde
+    // Actualizar estado de la solicitud y calcular fecha de entrega si es el primer pago
     const sol = state.solicitudes.find(s => s.id === solId);
     if (sol) {
       const saldoActual = Number(sol.fields[FIELDS.SOL.saldo]) || 0;
       const nuevoSaldo  = saldoActual - equivArs;
       const nuevoEstado = nuevoSaldo <= 0 ? 'Pagado' : 'Pago parcial';
-      await updateRecord(TABLES.SOLICITUDES, solId, { [FIELDS.SOL.estado]: nuevoEstado });
+      const updateFields = { [FIELDS.SOL.estado]: nuevoEstado };
+
+      // Si es el primer pago y tiene días de entrega configurados, calcular fecha de entrega
+      const estadoActual = getVal(sol.fields, FIELDS.SOL.estado);
+      const diasEntrega  = sol.fields[FIELDS.SOL.dias_entrega];
+      if (estadoActual !== 'Pago parcial' && estadoActual !== 'Pagado' && diasEntrega) {
+        const fechaPago    = new Date(fecha + 'T00:00:00');
+        fechaPago.setDate(fechaPago.getDate() + Number(diasEntrega));
+        updateFields[FIELDS.SOL.fecha_entrega] = fechaPago.toISOString().slice(0, 10);
+      }
+      await updateRecord(TABLES.SOLICITUDES, solId, updateFields);
     }
     showToast('Pago registrado', 'success');
     document.getElementById('np-solicitud').value = '';
