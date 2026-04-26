@@ -1095,46 +1095,7 @@ function renderDashboard() {
     const [y, mo] = filtroMes.split('-');
     filtroLabels.push(new Date(y, mo - 1).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }));
   }
-  if (sub) sub.textContent = filtroLabels.length ? 'Filtrando: ' + filtroLabels.join(' · ') : 'Ordenadas por urgencia y deadline';
-
-  const sorted = [...activas].sort((a, b) => {
-    const urg = {Alta:0,Media:1,Baja:2};
-    const ua = urg[getVal(a.fields, FIELDS.SOL.urgencia)] ?? 3;
-    const ub = urg[getVal(b.fields, FIELDS.SOL.urgencia)] ?? 3;
-    if (ua !== ub) return ua - ub;
-    return (a.fields[FIELDS.SOL.deadline] || '9999').localeCompare(b.fields[FIELDS.SOL.deadline] || '9999');
-  });
-
-  const tbody = document.getElementById('tbody-dashboard');
-  if (!sorted.length) { tbody.innerHTML = '<tr><td colspan="10" class="empty">No hay solicitudes activas</td></tr>'; return; }
-
-  tbody.innerHTML = sorted.map(s => {
-    const f = s.fields;
-    const obraName = lookupNombre(f[FIELDS.SOL.obra], state.obras, 'obras');
-    const provName = lookupNombre(f[FIELDS.SOL.proveedor], state.proveedores, 'proveedores');
-    const moneda   = getVal(f, FIELDS.SOL.moneda);
-    const saldoArsVal = moneda === 'ARS' ? (Number(f[FIELDS.SOL.saldo]) || 0) : 0;
-    const saldoUsdVal = moneda === 'USD' ? (Number(f[FIELDS.SOL.monto_final_usd] || f[FIELDS.SOL.monto_base_usd]) || 0) : 0;
-    return `<tr>
-      <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${f[FIELDS.SOL.nombre]||''}">${f[FIELDS.SOL.nombre]||'—'}</td>
-      <td>${obraName}</td>
-      <td>${provName}</td>
-      <td><span class="pill ${moneda === 'USD' ? 'pill-green' : 'pill-blue'}">${moneda||'—'}</span></td>
-      <td>${urgSpan(f[FIELDS.SOL.urgencia])}</td>
-      <td>${deadlineSpan(f[FIELDS.SOL.deadline])}</td>
-      <td style="font-weight:500;">${moneda === 'ARS' ? ars(saldoArsVal) : '—'}</td>
-      <td style="font-weight:500;">${moneda === 'USD' ? 'USD ' + saldoUsdVal.toLocaleString('es-AR',{minimumFractionDigits:2}) : '—'}</td>
-      <td>${estadoPill(f[FIELDS.SOL.estado])}</td>
-      <td>
-        <div class="actions">
-          <button class="action-btn primary" onclick="irAPago('${s.id}')">+ Pago</button>
-          <button class="action-btn" onclick="abrirModalEstado('${s.id}')">Estado</button>
-          <button class="action-btn" onclick="irAAdic('${s.id}')">+ Adicional</button>
-          <button class="action-btn" onclick="abrirModalUrgencia('${s.id}')">Editar</button>
-        </div>
-      </td>
-    </tr>`;
-  }).join('');
+  if (sub) sub.textContent = filtroLabels.length ? 'Filtrando: ' + filtroLabels.join(' · ') : 'Basado en deadline — ARS y USD separados';
 }
 
 function populateMesFilter() {
