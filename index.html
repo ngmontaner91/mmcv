@@ -700,6 +700,71 @@
   </div>
 </div>
 
+<!-- MODAL EDITAR SOLICITUD -->
+<div class="modal-overlay hidden" id="modal-editar">
+  <div class="modal" style="width:560px;">
+    <div class="modal-title">Editar solicitud</div>
+    <div id="modal-editar-info" style="font-size:12px;color:var(--text2);margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--border);"></div>
+    <div class="form-grid" style="margin-bottom:0;">
+      <div class="form-field" id="edit-field-base-ars">
+        <label class="form-label">Monto base sin IVA (ARS)</label>
+        <input class="form-input" id="edit-base-ars" type="number" placeholder="0"/>
+      </div>
+      <div class="form-field hidden" id="edit-field-base-usd">
+        <label class="form-label">Monto base sin IVA (USD)</label>
+        <input class="form-input" id="edit-base-usd" type="number" placeholder="0"/>
+      </div>
+      <div class="form-field full">
+        <label class="form-label">¿Incluye IVA?</label>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:4px;">
+          <input type="checkbox" id="edit-tiene-iva" style="width:16px;height:16px;cursor:pointer;"/>
+          <span style="font-size:13px;color:var(--text2);">Sí, incluye IVA</span>
+        </div>
+      </div>
+      <div class="form-field" id="edit-field-final-ars">
+        <label class="form-label">Monto final con IVA (ARS)</label>
+        <input class="form-input" id="edit-final-ars" type="number" placeholder="0"/>
+      </div>
+      <div class="form-field hidden" id="edit-field-final-usd">
+        <label class="form-label">Monto final con IVA (USD)</label>
+        <input class="form-input" id="edit-final-usd" type="number" placeholder="0"/>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Urgencia</label>
+        <select class="form-select" id="edit-urgencia">
+          <option value="Alta">Alta</option>
+          <option value="Media">Media</option>
+          <option value="Baja">Baja</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Deadline</label>
+        <input class="form-input" id="edit-deadline" type="date"/>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Días de entrega desde primer pago</label>
+        <input class="form-input" id="edit-dias-entrega" type="number" placeholder="Ej: 30"/>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Tipo de cambio</label>
+        <input class="form-input" id="edit-tc" type="number" placeholder="TC al momento"/>
+      </div>
+      <div class="form-field full">
+        <label class="form-label">Link al presupuesto</label>
+        <input class="form-input" id="edit-link-doc" type="url" placeholder="https://drive.google.com/..."/>
+      </div>
+      <div class="form-field full">
+        <label class="form-label">Observaciones</label>
+        <textarea class="form-textarea" id="edit-obs" placeholder="Notas adicionales"></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal('modal-editar')">Cancelar</button>
+      <button class="btn-primary" id="btn-confirmar-editar" onclick="confirmarEditar()">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
 <!-- CONFIG MODAL -->
 <div class="modal-overlay hidden" id="modal-config">
   <div class="modal">
@@ -1179,6 +1244,7 @@ function renderSolicitudes() {
           <button class="action-btn" onclick="abrirModalEstado('${s.id}')">Estado</button>
           <button class="action-btn" onclick="irAAdic('${s.id}')">+ Adicional</button>
           <button class="action-btn" onclick="abrirModalUrgencia('${s.id}')">Editar</button>
+          ${getVal(f, FIELDS.SOL.estado) === 'Pendiente aprobación' ? `<button class="action-btn" style="border-color:#854F0B;color:#854F0B;" onclick="abrirModalEditar('${s.id}')">✏️ Presupuesto</button>` : ''}
         </div>
       </td>
     </tr>`;
@@ -1323,7 +1389,65 @@ async function confirmarEstado() {
   } catch(e) { showToast('Error al actualizar', 'error'); }
 }
 
-function abrirModalUrgencia(solicitudId) {
+function abrirModalEditar(solicitudId) {
+  currentSolicitudId = solicitudId;
+  const sol = state.solicitudes.find(s => s.id === solicitudId);
+  const f = sol?.fields || {};
+  const moneda = getVal(f, FIELDS.SOL.moneda) || 'ARS';
+
+  document.getElementById('modal-editar-info').innerHTML =
+    `<strong>${f[FIELDS.SOL.nombre] || solicitudId}</strong> &nbsp;·&nbsp; ${lookupNombre(f[FIELDS.SOL.obra], state.obras, 'obras')} &nbsp;·&nbsp; <span class="pill ${moneda === 'USD' ? 'pill-green' : 'pill-blue'}">${moneda}</span>`;
+
+  // Mostrar/ocultar campos según moneda
+  document.getElementById('edit-field-base-ars').classList.toggle('hidden', moneda === 'USD');
+  document.getElementById('edit-field-base-usd').classList.toggle('hidden', moneda === 'ARS');
+  document.getElementById('edit-field-final-ars').classList.toggle('hidden', moneda === 'USD');
+  document.getElementById('edit-field-final-usd').classList.toggle('hidden', moneda === 'ARS');
+
+  // Precargar valores
+  document.getElementById('edit-base-ars').value    = f[FIELDS.SOL.monto_base_ars] || '';
+  document.getElementById('edit-base-usd').value    = f[FIELDS.SOL.monto_base_usd] || '';
+  document.getElementById('edit-tiene-iva').checked = !!f[FIELDS.SOL.tiene_iva];
+  document.getElementById('edit-final-ars').value   = f[FIELDS.SOL.monto_final_ars] || '';
+  document.getElementById('edit-final-usd').value   = f[FIELDS.SOL.monto_final_usd] || '';
+  document.getElementById('edit-urgencia').value    = getVal(f, FIELDS.SOL.urgencia) || 'Media';
+  document.getElementById('edit-deadline').value    = f[FIELDS.SOL.deadline] || '';
+  document.getElementById('edit-dias-entrega').value= f[FIELDS.SOL.dias_entrega] || '';
+  document.getElementById('edit-tc').value          = f[FIELDS.SOL.tc] || '';
+  document.getElementById('edit-link-doc').value    = f[FIELDS.SOL.link_documento] || '';
+  document.getElementById('edit-obs').value         = f[FIELDS.SOL.obs] || '';
+
+  openModal('modal-editar');
+}
+
+async function confirmarEditar() {
+  const sol = state.solicitudes.find(s => s.id === currentSolicitudId);
+  const moneda = getVal(sol?.fields, FIELDS.SOL.moneda) || 'ARS';
+
+  const fields = {
+    [FIELDS.SOL.monto_base_ars]:  moneda === 'ARS' ? (parseFloat(document.getElementById('edit-base-ars').value) || 0) : 0,
+    [FIELDS.SOL.monto_base_usd]:  moneda === 'USD' ? (parseFloat(document.getElementById('edit-base-usd').value) || 0) : 0,
+    [FIELDS.SOL.tiene_iva]:       document.getElementById('edit-tiene-iva').checked,
+    [FIELDS.SOL.monto_final_ars]: moneda === 'ARS' ? (parseFloat(document.getElementById('edit-final-ars').value) || 0) : 0,
+    [FIELDS.SOL.monto_final_usd]: moneda === 'USD' ? (parseFloat(document.getElementById('edit-final-usd').value) || 0) : 0,
+    [FIELDS.SOL.urgencia]:        document.getElementById('edit-urgencia').value,
+    [FIELDS.SOL.deadline]:        document.getElementById('edit-deadline').value || null,
+    [FIELDS.SOL.dias_entrega]:    parseInt(document.getElementById('edit-dias-entrega').value) || null,
+    [FIELDS.SOL.tc]:              parseFloat(document.getElementById('edit-tc').value) || null,
+    [FIELDS.SOL.link_documento]:  document.getElementById('edit-link-doc').value.trim() || null,
+    [FIELDS.SOL.obs]:             document.getElementById('edit-obs').value.trim() || null,
+  };
+
+  const btn = document.getElementById('btn-confirmar-editar');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  try {
+    await updateRecord(TABLES.SOLICITUDES, currentSolicitudId, fields);
+    closeModal('modal-editar');
+    showToast('Solicitud actualizada', 'success');
+    await loadAll();
+  } catch(e) { showToast('Error al guardar: ' + e.message, 'error'); }
+  finally { btn.disabled = false; btn.textContent = 'Guardar cambios'; }
+}
   currentSolicitudId = solicitudId;
   const sol = state.solicitudes.find(s => s.id === solicitudId);
   const f = sol?.fields || {};
