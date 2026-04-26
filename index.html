@@ -181,10 +181,15 @@
   .obra-card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
   .obra-card-name { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
   .obra-card-row { font-size: 12px; color: var(--text2); margin-bottom: 3px; }
+
+  .nav-mobile { display: none; }
+
+  @media (max-width: 768px) {
     .metrics { grid-template-columns: repeat(2, 1fr); }
     .form-grid { grid-template-columns: 1fr; }
     .grid2 { grid-template-columns: 1fr; }
     .nav { display: none; }
+    .nav-mobile { display: block; }
   }
 </style>
 </head>
@@ -204,6 +209,14 @@
     <button class="nav-btn" onclick="showView('nuevo-adicional')">+ Adicional</button>
     <button class="nav-btn" onclick="showView('maestros')">Maestros</button>
   </div>
+  <select class="nav-mobile form-select" style="font-size:13px;padding:6px 10px;max-width:180px;" onchange="showView(this.value);this.blur()">
+    <option value="dashboard">Dashboard</option>
+    <option value="solicitudes">Solicitudes</option>
+    <option value="nueva-solicitud">+ Solicitud</option>
+    <option value="nuevo-pago">+ Pago parcial</option>
+    <option value="nuevo-adicional">+ Adicional</option>
+    <option value="maestros">Maestros</option>
+  </select>
   <div class="topbar-right">
     <button class="refresh-btn" onclick="loadAll()">↺ Actualizar</button>
     <button class="config-btn" onclick="openConfig()">Configurar</button>
