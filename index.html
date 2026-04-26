@@ -231,13 +231,13 @@
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
       <div style="font-size:13px;color:var(--text2);">Filtros del dashboard</div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-        <select class="form-select" id="filtro-moneda-dashboard" onchange="renderDashboard()" style="padding:5px 10px;font-size:12px;width:140px;">
-          <option value="">Todas las monedas</option>
-          <option value="ARS">Solo ARS</option>
-          <option value="USD">Solo USD</option>
+        <select class="form-select" id="filtro-moneda-dashboard" onchange="renderDashboard()" style="padding:5px 10px;font-size:12px;width:110px;">
+          <option value="">Moneda</option>
+          <option value="ARS">ARS</option>
+          <option value="USD">USD</option>
         </select>
-        <select class="form-select" id="filtro-mes-dashboard" onchange="renderDashboard()" style="padding:5px 10px;font-size:12px;width:180px;">
-          <option value="">Todos los meses</option>
+        <select class="form-select" id="filtro-mes-dashboard" onchange="renderDashboard()" style="padding:5px 10px;font-size:12px;width:150px;">
+          <option value="">Mes</option>
         </select>
         <button class="action-btn" onclick="document.getElementById('filtro-mes-dashboard').value='';document.getElementById('filtro-moneda-dashboard').value='';renderDashboard();">Limpiar</button>
       </div>
@@ -272,13 +272,13 @@
       <div class="card-header">
         <div><div class="card-title">Todas las solicitudes</div></div>
         <div style="display:flex;gap:8px;align-items:center;">
-          <select class="form-select" style="width:130px;padding:5px 8px;font-size:12px;" id="filtro-moneda-sol" onchange="renderSolicitudes()">
-            <option value="">Todas las monedas</option>
-            <option value="ARS">Solo ARS</option>
-            <option value="USD">Solo USD</option>
+          <select class="form-select" style="width:110px;padding:5px 8px;font-size:12px;" id="filtro-moneda-sol" onchange="renderSolicitudes()">
+            <option value="">Moneda</option>
+            <option value="ARS">ARS</option>
+            <option value="USD">USD</option>
           </select>
           <select class="form-select" style="width:160px;padding:5px 8px;font-size:12px;" id="filtro-estado" onchange="renderSolicitudes()">
-            <option value="">Todos los estados</option>
+            <option value="">Estado</option>
             <option value="Pendiente aprobación">Pendiente aprobación</option>
             <option value="Aprobado">Aprobado</option>
             <option value="Pago parcial">Pago parcial</option>
@@ -286,7 +286,7 @@
             <option value="Rechazado">Rechazado</option>
           </select>
           <select class="form-select" style="width:160px;padding:5px 8px;font-size:12px;" id="filtro-obra" onchange="renderSolicitudes()">
-            <option value="">Todas las obras</option>
+            <option value="">Obra</option>
           </select>
         </div>
       </div>
@@ -295,9 +295,9 @@
           <thead><tr>
             <th>Obra</th><th>Proveedor</th><th>Concepto</th>
             <th>IVA</th><th>Final ARS</th><th>Final USD</th>
-            <th>Pagado</th><th>Saldo</th><th>Estado</th><th>Acciones</th>
+            <th>Pagado</th><th>Saldo</th><th>Estado</th><th>Doc</th><th>Acciones</th>
           </tr></thead>
-          <tbody id="tbody-solicitudes"><tr><td colspan="10" class="loading"><span class="spinner"></span>Cargando...</td></tr></tbody>
+          <tbody id="tbody-solicitudes"><tr><td colspan="11" class="loading"><span class="spinner"></span>Cargando...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -980,7 +980,11 @@ function renderGrafico() {
         x: { grid: { display: false }, ticks: { font: { size: 12 } } },
         y: {
           type: 'linear', position: 'left', stacked: true,
-          ticks: { font: { size: 11 }, callback: v => '$' + (v/1000).toFixed(0) + 'k' },
+          ticks: { font: { size: 11 }, callback: v => {
+            if (v >= 1000000) return '$' + (v/1000000).toLocaleString('es-AR',{maximumFractionDigits:1}) + 'M';
+            if (v >= 1000) return '$' + (v/1000).toLocaleString('es-AR',{maximumFractionDigits:0}) + 'k';
+            return '$' + v.toLocaleString('es-AR');
+          }},
           title: { display: true, text: 'ARS', font: { size: 11 } }
         },
         yUsd: {
@@ -1147,7 +1151,7 @@ function renderSolicitudes() {
   });
 
   const tbody = document.getElementById('tbody-solicitudes');
-  if (!lista.length) { tbody.innerHTML = '<tr><td colspan="10" class="empty">No hay solicitudes</td></tr>'; return; }
+  if (!lista.length) { tbody.innerHTML = '<tr><td colspan="11" class="empty">No hay solicitudes</td></tr>'; return; }
 
   tbody.innerHTML = lista.map(s => {
     const f = s.fields;
@@ -1157,6 +1161,7 @@ function renderSolicitudes() {
     const finalArs = f[FIELDS.SOL.monto_final_ars] || f[FIELDS.SOL.monto_base_ars] || 0;
     const finalUsd = f[FIELDS.SOL.monto_final_usd] || f[FIELDS.SOL.monto_base_usd] || 0;
     const tieneIva = f[FIELDS.SOL.tiene_iva];
+    const linkDoc  = f[FIELDS.SOL.link_documento];
     return `<tr>
       <td style="font-weight:500;">${obraName}</td>
       <td>${provName}</td>
@@ -1167,6 +1172,7 @@ function renderSolicitudes() {
       <td>${moneda === 'ARS' ? ars(f[FIELDS.SOL.total_pagado]) : '—'}</td>
       <td style="font-weight:500;">${moneda === 'ARS' ? ars(f[FIELDS.SOL.saldo]) : '—'}</td>
       <td>${estadoPill(f[FIELDS.SOL.estado])}</td>
+      <td>${linkDoc ? `<a href="${linkDoc}" target="_blank" style="color:var(--blue);font-size:12px;text-decoration:none;" title="Ver presupuesto">📄</a>` : '<span style="color:var(--text3);font-size:12px;">—</span>'}</td>
       <td>
         <div class="actions">
           <button class="action-btn primary" onclick="irAPago('${s.id}')">+ Pago</button>
