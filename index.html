@@ -4,6 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>MMCV — Pagos a Proveedores</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -170,7 +171,16 @@
   .saldo-bar { height: 6px; background: var(--bg3); border-radius: 3px; overflow: hidden; margin-top: 4px; }
   .saldo-fill { height: 100%; background: #1D9E75; border-radius: 3px; transition: width .4s; }
 
-  @media (max-width: 768px) {
+  /* CONTACT CARDS */
+  .contact-card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+  .contact-card-name { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+  .contact-card-sub { font-size: 12px; color: var(--text2); margin-bottom: 10px; }
+  .contact-card-row { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text2); margin-bottom: 5px; text-decoration: none; }
+  .contact-card-row:hover { color: var(--blue); }
+  .contact-card-row svg { flex-shrink: 0; }
+  .obra-card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+  .obra-card-name { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+  .obra-card-row { font-size: 12px; color: var(--text2); margin-bottom: 3px; }
     .metrics { grid-template-columns: repeat(2, 1fr); }
     .form-grid { grid-template-columns: 1fr; }
     .grid2 { grid-template-columns: 1fr; }
@@ -234,16 +244,11 @@
 
     <div class="card">
       <div class="card-header">
-        <div><div class="card-title">Solicitudes activas</div><div class="card-sub" id="dashboard-sub">Ordenadas por urgencia y deadline</div></div>
+        <div><div class="card-title">Proyección de pagos por mes</div><div class="card-sub" id="dashboard-sub">Basado en deadline — ARS y USD separados</div></div>
       </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th>Solicitud</th><th>Obra</th><th>Proveedor</th><th>Moneda</th><th>Urgencia</th><th>Deadline</th>
-            <th>Saldo ARS</th><th>Saldo USD</th><th>Estado</th><th>Acciones</th>
-          </tr></thead>
-          <tbody id="tbody-dashboard"><tr><td colspan="10" class="loading"><span class="spinner"></span>Cargando...</td></tr></tbody>
-        </table>
+      <div style="padding:20px 24px;">
+        <canvas id="grafico-pagos" style="width:100%;height:320px;"></canvas>
+        <div id="grafico-empty" class="empty" style="display:none;">No hay datos suficientes para graficar</div>
       </div>
     </div>
   </div>
@@ -275,11 +280,11 @@
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th>Solicitud</th><th>Obra</th><th>Proveedor</th><th>Moneda</th>
-            <th>Final ARS</th><th>Final USD</th>
-            <th>Actualizado</th><th>Pagado</th><th>Saldo</th><th>Estado</th><th>Acciones</th>
+            <th>Obra</th><th>Proveedor</th><th>Concepto</th>
+            <th>IVA</th><th>Final ARS</th><th>Final USD</th>
+            <th>Pagado</th><th>Saldo</th><th>Estado</th><th>Acciones</th>
           </tr></thead>
-          <tbody id="tbody-solicitudes"><tr><td colspan="11" class="loading"><span class="spinner"></span>Cargando...</td></tr></tbody>
+          <tbody id="tbody-solicitudes"><tr><td colspan="10" class="loading"><span class="spinner"></span>Cargando...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -516,30 +521,22 @@
 
   <!-- MAESTROS -->
   <div id="view-maestros" class="view">
-    <div class="grid2">
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">Obras</div>
-          <button class="action-btn primary" onclick="showView('nueva-obra')">+ Nueva obra</button>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Nombre</th><th>Tipo</th><th>Inicio est.</th><th>Fin est.</th></tr></thead>
-            <tbody id="tbody-obras"><tr><td colspan="4" class="loading"><span class="spinner"></span></td></tr></tbody>
-          </table>
-        </div>
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-header">
+        <div class="card-title">Obras</div>
+        <button class="action-btn primary" onclick="showView('nueva-obra')">+ Nueva obra</button>
       </div>
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">Proveedores</div>
-          <button class="action-btn primary" onclick="showView('nuevo-proveedor')">+ Nuevo proveedor</button>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Nombre</th><th>Rubro</th><th>Contacto</th></tr></thead>
-            <tbody id="tbody-proveedores"><tr><td colspan="3" class="loading"><span class="spinner"></span></td></tr></tbody>
-          </table>
-        </div>
+      <div id="cards-obras" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;padding:16px;">
+        <div class="loading"><span class="spinner"></span>Cargando...</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Proveedores</div>
+        <button class="action-btn primary" onclick="showView('nuevo-proveedor')">+ Nuevo proveedor</button>
+      </div>
+      <div id="cards-proveedores" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;padding:16px;">
+        <div class="loading"><span class="spinner"></span>Cargando...</div>
       </div>
     </div>
   </div>
@@ -748,6 +745,7 @@ const FIELDS = {
     monto_vigente:    'monto_vigente_ars [calc]',
     total_pagado:     'total_pagado_ars [calc]',
     saldo:            'saldo_pendiente_ars [calc]',
+    total_adicionales:'total_adicionales_ars_calc',
     obs:              'observaciones',
   },
   PAG: {
@@ -871,9 +869,116 @@ async function loadAll() {
 function renderAll() {
   populateMesFilter();
   renderDashboard();
+  renderGrafico();
   renderSolicitudes();
   renderMaestros();
   populateSelects();
+}
+
+let _chartInstance = null;
+
+function renderGrafico() {
+  const canvas = document.getElementById('grafico-pagos');
+  const empty  = document.getElementById('grafico-empty');
+  if (!canvas) return;
+
+  // Agrupar solicitudes por mes de deadline
+  const mesesSet = new Set();
+  state.solicitudes.forEach(s => {
+    const dl = s.fields[FIELDS.SOL.deadline];
+    if (dl) mesesSet.add(dl.slice(0, 7));
+  });
+
+  if (!mesesSet.size) {
+    canvas.style.display = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+  canvas.style.display = 'block';
+  empty.style.display = 'none';
+
+  const meses = [...mesesSet].sort();
+  const labels = meses.map(m => {
+    const [y, mo] = m.split('-');
+    return new Date(y, mo - 1).toLocaleDateString('es-AR', { month: 'short', year: '2-digit' });
+  });
+
+  // Para cada mes: suma ARS pagado, ARS pendiente, USD pagado, USD pendiente
+  const arsPagado    = meses.map(_ => 0);
+  const arsPendiente = meses.map(_ => 0);
+  const usdPagado    = meses.map(_ => 0);
+  const usdPendiente = meses.map(_ => 0);
+
+  state.solicitudes.forEach(s => {
+    const dl = s.fields[FIELDS.SOL.deadline];
+    if (!dl) return;
+    const mes = dl.slice(0, 7);
+    const idx = meses.indexOf(mes);
+    if (idx === -1) return;
+    const moneda  = getVal(s.fields, FIELDS.SOL.moneda);
+    const estado  = getVal(s.fields, FIELDS.SOL.estado);
+    const pagado  = estado === 'Pagado';
+
+    if (moneda === 'ARS') {
+      const final = s.fields[FIELDS.SOL.monto_final_ars] || s.fields[FIELDS.SOL.monto_base_ars] || 0;
+      const adic  = s.fields[FIELDS.SOL.total_adicionales_ars_calc] || 0;
+      const total = Number(final) + Number(adic);
+      if (pagado) arsPagado[idx]    += total;
+      else        arsPendiente[idx] += total;
+    } else if (moneda === 'USD') {
+      const final = s.fields[FIELDS.SOL.monto_final_usd] || s.fields[FIELDS.SOL.monto_base_usd] || 0;
+      if (pagado) usdPagado[idx]    += Number(final);
+      else        usdPendiente[idx] += Number(final);
+    }
+  });
+
+  if (_chartInstance) { _chartInstance.destroy(); _chartInstance = null; }
+
+  const ctx = canvas.getContext('2d');
+  canvas.height = 320;
+
+  _chartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'ARS pagado',    data: arsPagado,    backgroundColor: 'rgba(29,158,117,0.55)', stack: 'ars' },
+        { label: 'ARS pendiente', data: arsPendiente, backgroundColor: 'rgba(24,95,165,0.55)',  stack: 'ars' },
+        { label: 'USD pagado',    data: usdPagado,    backgroundColor: 'rgba(29,158,117,0.25)', stack: 'usd', yAxisID: 'yUsd' },
+        { label: 'USD pendiente', data: usdPendiente, backgroundColor: 'rgba(24,95,165,0.25)',  stack: 'usd', yAxisID: 'yUsd' },
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top', labels: { font: { size: 12 }, boxWidth: 14, padding: 16 } },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const v = ctx.raw;
+              if (ctx.dataset.yAxisID === 'yUsd') return `${ctx.dataset.label}: USD ${Math.round(v).toLocaleString('es-AR')}`;
+              return `${ctx.dataset.label}: $${Math.round(v).toLocaleString('es-AR')}`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 12 } } },
+        y: {
+          type: 'linear', position: 'left', stacked: true,
+          ticks: { font: { size: 11 }, callback: v => '$' + (v/1000).toFixed(0) + 'k' },
+          title: { display: true, text: 'ARS', font: { size: 11 } }
+        },
+        yUsd: {
+          type: 'linear', position: 'right', stacked: true,
+          ticks: { font: { size: 11 }, callback: v => 'USD ' + v.toLocaleString('es-AR') },
+          title: { display: true, text: 'USD', font: { size: 11 } },
+          grid: { drawOnChartArea: false }
+        }
+      }
+    }
+  });
 }
 
 function getVal(fields, key) {
@@ -1068,7 +1173,7 @@ function renderSolicitudes() {
   });
 
   const tbody = document.getElementById('tbody-solicitudes');
-  if (!lista.length) { tbody.innerHTML = '<tr><td colspan="11" class="empty">No hay solicitudes</td></tr>'; return; }
+  if (!lista.length) { tbody.innerHTML = '<tr><td colspan="10" class="empty">No hay solicitudes</td></tr>'; return; }
 
   tbody.innerHTML = lista.map(s => {
     const f = s.fields;
@@ -1077,17 +1182,14 @@ function renderSolicitudes() {
     const moneda = getVal(f, FIELDS.SOL.moneda);
     const finalArs = f[FIELDS.SOL.monto_final_ars] || f[FIELDS.SOL.monto_base_ars] || 0;
     const finalUsd = f[FIELDS.SOL.monto_final_usd] || f[FIELDS.SOL.monto_base_usd] || 0;
-    const vigenteDisplay = moneda === 'ARS'
-      ? ars(f[FIELDS.SOL.monto_vigente])
-      : 'USD ' + Number(finalUsd).toLocaleString('es-AR', {minimumFractionDigits:2});
+    const tieneIva = f[FIELDS.SOL.tiene_iva];
     return `<tr>
-      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f[FIELDS.SOL.nombre]||'—'}</td>
-      <td>${obraName}</td>
+      <td style="font-weight:500;">${obraName}</td>
       <td>${provName}</td>
-      <td><span class="pill ${moneda==='USD'?'pill-green':'pill-blue'}">${moneda||'—'}</span></td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2);font-size:12px;">${f[FIELDS.SOL.concepto]||'—'}</td>
+      <td>${tieneIva ? '<span class="pill pill-amber">Con IVA</span>' : '<span style="color:var(--text3);font-size:12px;">Sin IVA</span>'}</td>
       <td>${moneda === 'ARS' ? ars(finalArs) : '—'}</td>
       <td>${moneda === 'USD' ? 'USD ' + Number(finalUsd).toLocaleString('es-AR',{minimumFractionDigits:2}) : '—'}</td>
-      <td>${vigenteDisplay}</td>
       <td>${moneda === 'ARS' ? ars(f[FIELDS.SOL.total_pagado]) : '—'}</td>
       <td style="font-weight:500;">${moneda === 'ARS' ? ars(f[FIELDS.SOL.saldo]) : '—'}</td>
       <td>${estadoPill(f[FIELDS.SOL.estado])}</td>
@@ -1104,22 +1206,42 @@ function renderSolicitudes() {
 }
 
 function renderMaestros() {
-  const tObras = document.getElementById('tbody-obras');
-  if (!state.obras.length) { tObras.innerHTML = '<tr><td colspan="4" class="empty">Sin obras</td></tr>'; }
-  else tObras.innerHTML = state.obras.map(o => `<tr>
-    <td>${o.fields.nombre||'—'}</td>
-    <td>${o.fields.tipo||'—'}</td>
-    <td>${o.fields.fecha_inicio_estimada||'—'}</td>
-    <td>${o.fields.fecha_fin_estimada||'—'}</td>
-  </tr>`).join('');
+  const cObras = document.getElementById('cards-obras');
+  if (!state.obras.length) {
+    cObras.innerHTML = '<div class="empty">Sin obras cargadas</div>';
+  } else {
+    cObras.innerHTML = state.obras.map(o => `
+      <div class="obra-card">
+        <div class="obra-card-name">${o.fields.nombre||'—'}</div>
+        <div class="obra-card-row">${o.fields.tipo||''}</div>
+        ${o.fields.fecha_inicio_estimada ? `<div class="obra-card-row">Inicio: ${o.fields.fecha_inicio_estimada}</div>` : ''}
+        ${o.fields.fecha_fin_estimada ? `<div class="obra-card-row">Fin est.: ${o.fields.fecha_fin_estimada}</div>` : ''}
+      </div>`).join('');
+  }
 
-  const tProvs = document.getElementById('tbody-proveedores');
-  if (!state.proveedores.length) { tProvs.innerHTML = '<tr><td colspan="3" class="empty">Sin proveedores</td></tr>'; }
-  else tProvs.innerHTML = state.proveedores.map(p => `<tr>
-    <td>${p.fields.nombre||'—'}</td>
-    <td>${p.fields.rubro||'—'}</td>
-    <td>${p.fields.contacto||'—'}</td>
-  </tr>`).join('');
+  const cProvs = document.getElementById('cards-proveedores');
+  if (!state.proveedores.length) {
+    cProvs.innerHTML = '<div class="empty">Sin proveedores cargados</div>';
+  } else {
+    cProvs.innerHTML = state.proveedores.map(p => `
+      <div class="contact-card">
+        <div class="contact-card-name">${p.fields.nombre||'—'}</div>
+        <div class="contact-card-sub">${p.fields.rubro||''}</div>
+        ${p.fields.telefono ? `<a class="contact-card-row" href="tel:${p.fields.telefono}">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 10.8a19.79 19.79 0 01-3.07-8.68A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92v2z"/></svg>
+          ${p.fields.telefono}
+        </a>` : ''}
+        ${p.fields.email ? `<a class="contact-card-row" href="mailto:${p.fields.email}">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          ${p.fields.email}
+        </a>` : ''}
+        ${p.fields.contacto ? `<div class="contact-card-row">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          ${p.fields.contacto}
+        </div>` : ''}
+        ${p.fields.cbu ? `<div class="contact-card-row" style="margin-top:8px;padding-top:8px;border-top:0.5px solid var(--border);font-family:monospace;font-size:11px;color:var(--text3);">CBU: ${p.fields.cbu}</div>` : ''}
+      </div>`).join('');
+  }
 }
 
 function populateSelects() {
