@@ -207,6 +207,8 @@
     <button class="nav-btn" onclick="showView('nueva-solicitud')">+ Solicitud</button>
     <button class="nav-btn" onclick="showView('nuevo-pago')">+ Pago parcial</button>
     <button class="nav-btn" onclick="showView('nuevo-adicional')">+ Adicional</button>
+    <button class="nav-btn" onclick="showView('pagos')">Pagos</button>
+    <button class="nav-btn" onclick="showView('adicionales')">Adicionales</button>
     <button class="nav-btn" onclick="showView('maestros')">Maestros</button>
   </div>
   <select class="nav-mobile form-select" style="font-size:13px;padding:6px 10px;max-width:180px;" onchange="showView(this.value);this.blur()">
@@ -215,6 +217,8 @@
     <option value="nueva-solicitud">+ Solicitud</option>
     <option value="nuevo-pago">+ Pago parcial</option>
     <option value="nuevo-adicional">+ Adicional</option>
+    <option value="pagos">Pagos</option>
+    <option value="adicionales">Adicionales</option>
     <option value="maestros">Maestros</option>
   </select>
   <div class="topbar-right">
@@ -540,6 +544,64 @@
     </div>
   </div>
 
+  <!-- PAGOS -->
+  <div id="view-pagos" class="view">
+    <div class="card">
+      <div class="card-header">
+        <div><div class="card-title">Pagos parciales</div><div class="card-sub">Todos los pagos registrados</div></div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <select class="form-select" style="width:200px;padding:5px 8px;font-size:12px;" id="filtro-sol-pagos" onchange="renderPagos()">
+            <option value="">Todas las solicitudes</option>
+          </select>
+          <select class="form-select" style="width:130px;padding:5px 8px;font-size:12px;" id="filtro-anulados-pagos" onchange="renderPagos()">
+            <option value="">Todos</option>
+            <option value="activos">Solo activos</option>
+            <option value="anulados">Solo anulados</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>#</th><th>Solicitud</th><th>Fecha</th><th>Moneda</th>
+            <th>Monto ARS</th><th>Monto USD</th><th>Equiv. ARS</th>
+            <th>Comprobante</th><th>Registrado por</th><th>Estado</th><th>Acción</th>
+          </tr></thead>
+          <tbody id="tbody-pagos"><tr><td colspan="11" class="loading"><span class="spinner"></span>Cargando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADICIONALES -->
+  <div id="view-adicionales" class="view">
+    <div class="card">
+      <div class="card-header">
+        <div><div class="card-title">Adicionales</div><div class="card-sub">Todos los adicionales registrados</div></div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <select class="form-select" style="width:200px;padding:5px 8px;font-size:12px;" id="filtro-sol-adics" onchange="renderAdicionales()">
+            <option value="">Todas las solicitudes</option>
+          </select>
+          <select class="form-select" style="width:130px;padding:5px 8px;font-size:12px;" id="filtro-anulados-adics" onchange="renderAdicionales()">
+            <option value="">Todos</option>
+            <option value="activos">Solo activos</option>
+            <option value="anulados">Solo anulados</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Nombre</th><th>Solicitud</th><th>Fecha</th><th>Moneda</th>
+            <th>Base ARS</th><th>Base USD</th><th>IVA</th><th>Final ARS</th>
+            <th>Equiv. ARS</th><th>Motivo</th><th>Estado</th><th>Acción</th>
+          </tr></thead>
+          <tbody id="tbody-adicionales"><tr><td colspan="12" class="loading"><span class="spinner"></span>Cargando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <!-- MAESTROS -->
   <div id="view-maestros" class="view">
     <div class="card" style="margin-bottom:16px;">
@@ -790,6 +852,29 @@
   </div>
 </div>
 
+<!-- MODAL ANULACIÓN -->
+<div class="modal-overlay hidden" id="modal-anulacion">
+  <div class="modal">
+    <div class="modal-title">Anular movimiento</div>
+    <div id="modal-anulacion-info" style="background:var(--bg3);border-radius:var(--radius);padding:10px 14px;font-size:13px;margin-bottom:14px;"></div>
+    <div style="background:#FDECEA;border-left:4px solid #C0392B;padding:10px 14px;border-radius:6px;font-size:12px;color:#7B1C1C;margin-bottom:16px;">
+      &#9888; Esta acción no se puede deshacer. Se generará un registro negativo que contrarresta el efecto del movimiento original.
+    </div>
+    <div class="form-field" style="margin-bottom:12px;">
+      <label class="form-label">Motivo de la anulación <span class="req">*</span></label>
+      <input class="form-input" id="modal-motivo-anulacion" placeholder="Ej: Cargado por error, monto incorrecto"/>
+    </div>
+    <div class="form-field" style="margin-bottom:4px;">
+      <label class="form-label">Registrado por <span class="req">*</span></label>
+      <input class="form-input" id="modal-anulacion-registrado" placeholder="Nombre de quien anula"/>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal('modal-anulacion')">Cancelar</button>
+      <button class="btn-primary" style="background:#C0392B;" onclick="confirmarAnulacion()">Confirmar anulación</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
@@ -835,38 +920,42 @@ const FIELDS = {
     obs:              'observaciones',
   },
   PAG: {
-    nombre:     'nombre_pago',
-    solicitud:  'solicitud',
-    fecha:      'fecha_pago',
-    monto_ars:  'monto_ars',
-    monto_usd:  'monto_usd',
-    moneda:     'moneda_pago',
-    tc:         'tc_al_momento',
-    equiv_ars:  'monto_ars_equivalente',
-    comp:       'comprobante',
-    registrado: 'registrado_por',
+    nombre:           'nombre_pago',
+    solicitud:        'solicitud',
+    fecha:            'fecha_pago',
+    monto_ars:        'monto_ars',
+    monto_usd:        'monto_usd',
+    moneda:           'moneda_pago',
+    tc:               'tc_al_momento',
+    equiv_ars:        'monto_ars_equivalente',
+    comp:             'comprobante',
+    registrado:       'registrado_por',
+    anulado:          'anulado',
+    motivo_anulacion: 'motivo_anulacion',
   },
   ADIC: {
-    nombre:         'nombre_adicional',
-    solicitud:      'solicitud',
-    fecha:          'fecha',
-    monto_base_ars: 'monto_base_ars',
-    monto_base_usd: 'monto_base_usd',
-    tiene_iva:      'tiene_iva',
-    monto_final_ars:'monto_final_ars',
-    monto_final_usd:'monto_final_usd',
-    moneda:         'moneda',
-    tc:             'tc_al_momento',
-    equiv_ars:      'monto_ars_equivalente',
-    motivo:         'motivo',
-    registrado:     'registrado_por',
+    nombre:           'nombre_adicional',
+    solicitud:        'solicitud',
+    fecha:            'fecha',
+    monto_base_ars:   'monto_base_ars',
+    monto_base_usd:   'monto_base_usd',
+    tiene_iva:        'tiene_iva',
+    monto_final_ars:  'monto_final_ars',
+    monto_final_usd:  'monto_final_usd',
+    moneda:           'moneda',
+    tc:               'tc_al_momento',
+    equiv_ars:        'monto_ars_equivalente',
+    motivo:           'motivo',
+    registrado:       'registrado_por',
+    anulado:          'anulado',
+    motivo_anulacion: 'motivo_anulacion',
   }
 };
 
 // ============================================================
 // STATE
 // ============================================================
-let state = { obras: [], proveedores: [], solicitudes: [], pagos: [] };
+let state = { obras: [], proveedores: [], solicitudes: [], pagos: [], adicionales: [] };
 let currentSolicitudId = null;
 
 // ============================================================
@@ -934,14 +1023,18 @@ async function updateRecord(tableId, id, fields) {
 // ============================================================
 async function loadAll() {
   try {
-    const [obras, provs, sols] = await Promise.all([
+    const [obras, provs, sols, pagos, adics] = await Promise.all([
       fetchAll(TABLES.OBRAS),
       fetchAll(TABLES.PROVEEDORES),
       fetchAll(TABLES.SOLICITUDES),
+      fetchAll(TABLES.PAGOS),
+      fetchAll(TABLES.ADICIONALES),
     ]);
     state.obras        = obras;
     state.proveedores  = provs;
     state.solicitudes  = sols;
+    state.pagos        = pagos;
+    state.adicionales  = adics;
     renderAll();
   } catch(e) {
     showToast('Error al cargar datos. Verificá la configuración.', 'error');
@@ -957,6 +1050,8 @@ function renderAll() {
   renderDashboard();
   renderGrafico();
   renderSolicitudes();
+  renderPagos();
+  renderAdicionales();
   renderMaestros();
   populateSelects();
 }
@@ -1707,6 +1802,233 @@ async function guardarAdicional() {
     showView('dashboard');
   } catch(e) { showToast('Error al guardar: ' + e.message, 'error'); }
   finally { btn.disabled = false; btn.textContent = 'Registrar adicional'; }
+}
+
+// ============================================================
+// RENDER: PAGOS
+// ============================================================
+function renderPagos() {
+  const filtroSol     = document.getElementById('filtro-sol-pagos')?.value || '';
+  const filtroEstado  = document.getElementById('filtro-anulados-pagos')?.value || '';
+
+  // Poblar filtro de solicitudes preservando selección actual
+  const selSol = document.getElementById('filtro-sol-pagos');
+  if (selSol) {
+    const cur = selSol.value;
+    selSol.innerHTML = '<option value="">Todas las solicitudes</option>' +
+      state.solicitudes.map(s => `<option value="${s.id}" ${s.id === cur ? 'selected' : ''}>${s.fields[FIELDS.SOL.nombre] || s.id}</option>`).join('');
+  }
+
+  let lista = [...state.pagos];
+  if (filtroSol)    lista = lista.filter(p => (p.fields[FIELDS.PAG.solicitud] || []).includes(filtroSol));
+  if (filtroEstado === 'activos')   lista = lista.filter(p => !p.fields[FIELDS.PAG.anulado]);
+  if (filtroEstado === 'anulados')  lista = lista.filter(p =>  p.fields[FIELDS.PAG.anulado]);
+
+  lista.sort((a, b) => (b.fields[FIELDS.PAG.fecha] || '').localeCompare(a.fields[FIELDS.PAG.fecha] || ''));
+
+  const tbody = document.getElementById('tbody-pagos');
+  if (!tbody) return;
+  if (!lista.length) { tbody.innerHTML = '<tr><td colspan="11" class="empty">No hay pagos registrados</td></tr>'; return; }
+
+  // Obtener el estado de la solicitud madre de cada pago para controlar el botón
+  const solMap = {};
+  state.solicitudes.forEach(s => { solMap[s.id] = s; });
+
+  tbody.innerHTML = lista.map(p => {
+    const f = p.fields;
+    const anulado = !!f[FIELDS.PAG.anulado];
+    const solIds  = f[FIELDS.PAG.solicitud] || [];
+    const solNombre = solIds.length ? (solMap[solIds[0]]?.fields[FIELDS.SOL.nombre] || solIds[0]) : '—';
+    const solEstado = solIds.length ? getVal(solMap[solIds[0]]?.fields, FIELDS.SOL.estado) : null;
+    const puedeAnular = !anulado && solEstado !== 'Pagado';
+
+    const badgeOAnular = anulado
+      ? `<span class="pill pill-red" title="${f[FIELDS.PAG.motivo_anulacion] || ''}">Anulado</span>${f[FIELDS.PAG.motivo_anulacion] ? `<div style="font-size:11px;color:var(--text3);margin-top:2px;">${f[FIELDS.PAG.motivo_anulacion]}</div>` : ''}`
+      : (puedeAnular ? `<button class="action-btn" style="border-color:#C0392B;color:#C0392B;" onclick="abrirModalAnulacion('${p.id}','pago')">Anular</button>` : '<span style="color:var(--text3);font-size:11px;">—</span>');
+
+    return `<tr style="${anulado ? 'opacity:0.55;' : ''}">
+      <td style="font-size:12px;color:var(--text3);">${f[FIELDS.PAG.nombre] || '—'}</td>
+      <td style="font-size:12px;">${solNombre}</td>
+      <td style="font-size:12px;">${f[FIELDS.PAG.fecha] || '—'}</td>
+      <td><span class="pill ${f[FIELDS.PAG.moneda] === 'USD' ? 'pill-green' : 'pill-blue'}">${f[FIELDS.PAG.moneda] || '—'}</span></td>
+      <td style="font-size:12px;">${f[FIELDS.PAG.monto_ars] ? ars(f[FIELDS.PAG.monto_ars]) : '—'}</td>
+      <td style="font-size:12px;">${f[FIELDS.PAG.monto_usd] ? 'USD ' + Number(f[FIELDS.PAG.monto_usd]).toLocaleString('es-AR', {minimumFractionDigits:2}) : '—'}</td>
+      <td style="font-size:12px;font-weight:500;">${ars(f[FIELDS.PAG.equiv_ars])}</td>
+      <td style="font-size:12px;color:var(--text2);">${f[FIELDS.PAG.comp] || '—'}</td>
+      <td style="font-size:12px;color:var(--text2);">${f[FIELDS.PAG.registrado] || '—'}</td>
+      <td>${anulado ? '<span class="pill pill-red">Anulado</span>' : '<span class="pill pill-green">Activo</span>'}</td>
+      <td>${badgeOAnular}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ============================================================
+// RENDER: ADICIONALES
+// ============================================================
+function renderAdicionales() {
+  const filtroSol    = document.getElementById('filtro-sol-adics')?.value || '';
+  const filtroEstado = document.getElementById('filtro-anulados-adics')?.value || '';
+
+  // Poblar filtro de solicitudes preservando selección actual
+  const selSol = document.getElementById('filtro-sol-adics');
+  if (selSol) {
+    const cur = selSol.value;
+    selSol.innerHTML = '<option value="">Todas las solicitudes</option>' +
+      state.solicitudes.map(s => `<option value="${s.id}" ${s.id === cur ? 'selected' : ''}>${s.fields[FIELDS.SOL.nombre] || s.id}</option>`).join('');
+  }
+
+  let lista = [...state.adicionales];
+  if (filtroSol)    lista = lista.filter(a => (a.fields[FIELDS.ADIC.solicitud] || []).includes(filtroSol));
+  if (filtroEstado === 'activos')   lista = lista.filter(a => !a.fields[FIELDS.ADIC.anulado]);
+  if (filtroEstado === 'anulados')  lista = lista.filter(a =>  a.fields[FIELDS.ADIC.anulado]);
+
+  lista.sort((a, b) => (b.fields[FIELDS.ADIC.fecha] || '').localeCompare(a.fields[FIELDS.ADIC.fecha] || ''));
+
+  const tbody = document.getElementById('tbody-adicionales');
+  if (!tbody) return;
+  if (!lista.length) { tbody.innerHTML = '<tr><td colspan="12" class="empty">No hay adicionales registrados</td></tr>'; return; }
+
+  const solMap = {};
+  state.solicitudes.forEach(s => { solMap[s.id] = s; });
+
+  tbody.innerHTML = lista.map(a => {
+    const f = a.fields;
+    const anulado = !!f[FIELDS.ADIC.anulado];
+    const solIds  = f[FIELDS.ADIC.solicitud] || [];
+    const solNombre = solIds.length ? (solMap[solIds[0]]?.fields[FIELDS.SOL.nombre] || solIds[0]) : '—';
+    const solEstado = solIds.length ? getVal(solMap[solIds[0]]?.fields, FIELDS.SOL.estado) : null;
+    const puedeAnular = !anulado && solEstado !== 'Pagado';
+
+    const badgeOAnular = anulado
+      ? `<span class="pill pill-red" title="${f[FIELDS.ADIC.motivo_anulacion] || ''}">Anulado</span>${f[FIELDS.ADIC.motivo_anulacion] ? `<div style="font-size:11px;color:var(--text3);margin-top:2px;">${f[FIELDS.ADIC.motivo_anulacion]}</div>` : ''}`
+      : (puedeAnular ? `<button class="action-btn" style="border-color:#C0392B;color:#C0392B;" onclick="abrirModalAnulacion('${a.id}','adicional')">Anular</button>` : '<span style="color:var(--text3);font-size:11px;">—</span>');
+
+    return `<tr style="${anulado ? 'opacity:0.55;' : ''}">
+      <td style="font-size:12px;font-weight:500;">${f[FIELDS.ADIC.nombre] || '—'}</td>
+      <td style="font-size:12px;">${solNombre}</td>
+      <td style="font-size:12px;">${f[FIELDS.ADIC.fecha] || '—'}</td>
+      <td><span class="pill ${f[FIELDS.ADIC.moneda] === 'USD' ? 'pill-green' : 'pill-blue'}">${f[FIELDS.ADIC.moneda] || '—'}</span></td>
+      <td style="font-size:12px;">${f[FIELDS.ADIC.monto_base_ars] ? ars(f[FIELDS.ADIC.monto_base_ars]) : '—'}</td>
+      <td style="font-size:12px;">${f[FIELDS.ADIC.monto_base_usd] ? 'USD ' + Number(f[FIELDS.ADIC.monto_base_usd]).toLocaleString('es-AR',{minimumFractionDigits:2}) : '—'}</td>
+      <td>${f[FIELDS.ADIC.tiene_iva] ? '<span class="pill pill-amber">Con IVA</span>' : '<span style="color:var(--text3);font-size:11px;">Sin IVA</span>'}</td>
+      <td style="font-size:12px;">${f[FIELDS.ADIC.monto_final_ars] ? ars(f[FIELDS.ADIC.monto_final_ars]) : '—'}</td>
+      <td style="font-size:12px;font-weight:500;">${ars(f[FIELDS.ADIC.equiv_ars])}</td>
+      <td style="font-size:12px;color:var(--text2);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f[FIELDS.ADIC.motivo] || '—'}</td>
+      <td>${anulado ? '<span class="pill pill-red">Anulado</span>' : '<span class="pill pill-green">Activo</span>'}</td>
+      <td>${badgeOAnular}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ============================================================
+// ANULACIÓN
+// ============================================================
+let _anulacionId   = null;
+let _anulacionTipo = null;
+
+function abrirModalAnulacion(id, tipo) {
+  _anulacionId   = id;
+  _anulacionTipo = tipo;
+
+  const infoDiv = document.getElementById('modal-anulacion-info');
+  if (tipo === 'pago') {
+    const p = state.pagos.find(x => x.id === id);
+    const f = p?.fields || {};
+    infoDiv.innerHTML = `
+      <strong>${f[FIELDS.PAG.nombre] || 'Pago'}</strong><br/>
+      <span style="color:var(--text2);">Monto:</span> <strong>${ars(f[FIELDS.PAG.equiv_ars])}</strong> &nbsp;·&nbsp;
+      <span style="color:var(--text2);">Fecha:</span> ${f[FIELDS.PAG.fecha] || '—'} &nbsp;·&nbsp;
+      <span style="color:var(--text2);">Comprobante:</span> ${f[FIELDS.PAG.comp] || '—'}`;
+  } else {
+    const a = state.adicionales.find(x => x.id === id);
+    const f = a?.fields || {};
+    infoDiv.innerHTML = `
+      <strong>${f[FIELDS.ADIC.nombre] || 'Adicional'}</strong><br/>
+      <span style="color:var(--text2);">Equiv. ARS:</span> <strong>${ars(f[FIELDS.ADIC.equiv_ars])}</strong> &nbsp;·&nbsp;
+      <span style="color:var(--text2);">Fecha:</span> ${f[FIELDS.ADIC.fecha] || '—'}<br/>
+      <span style="color:var(--text2);">Motivo:</span> ${f[FIELDS.ADIC.motivo] || '—'}`;
+  }
+
+  document.getElementById('modal-motivo-anulacion').value = '';
+  document.getElementById('modal-anulacion-registrado').value = '';
+  openModal('modal-anulacion');
+}
+
+async function confirmarAnulacion() {
+  const motivo     = document.getElementById('modal-motivo-anulacion').value.trim();
+  const registrado = document.getElementById('modal-anulacion-registrado').value.trim();
+  if (!motivo)     { showToast('El motivo es obligatorio', 'error'); return; }
+  if (!registrado) { showToast('Completá quién anula', 'error'); return; }
+
+  const btn = document.querySelector('#modal-anulacion .btn-primary');
+  btn.disabled = true; btn.textContent = 'Anulando...';
+
+  try {
+    if (_anulacionTipo === 'pago') {
+      await anularPago(_anulacionId, motivo, registrado);
+    } else {
+      await anularAdicional(_anulacionId, motivo, registrado);
+    }
+    closeModal('modal-anulacion');
+    showToast('Movimiento anulado correctamente', 'success');
+    await loadAll();
+  } catch(e) {
+    showToast('Error al anular: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Confirmar anulación';
+  }
+}
+
+async function anularPago(pagoId, motivo, registrado) {
+  const pago = state.pagos.find(p => p.id === pagoId);
+  const f = pago.fields;
+
+  await updateRecord(TABLES.PAGOS, pagoId, {
+    [FIELDS.PAG.anulado]:          true,
+    [FIELDS.PAG.motivo_anulacion]: motivo,
+  });
+
+  const hoy = new Date().toISOString().slice(0, 10);
+  await createRecord(TABLES.PAGOS, {
+    [FIELDS.PAG.solicitud]:  f[FIELDS.PAG.solicitud],
+    [FIELDS.PAG.fecha]:      hoy,
+    [FIELDS.PAG.monto_ars]:  -(f[FIELDS.PAG.monto_ars]  || 0),
+    [FIELDS.PAG.monto_usd]:  -(f[FIELDS.PAG.monto_usd]  || 0),
+    [FIELDS.PAG.moneda]:     f[FIELDS.PAG.moneda],
+    [FIELDS.PAG.tc]:         f[FIELDS.PAG.tc],
+    [FIELDS.PAG.equiv_ars]:  -(f[FIELDS.PAG.equiv_ars]  || 0),
+    [FIELDS.PAG.comp]:       'ANULACIÓN — ' + (f[FIELDS.PAG.comp] || ''),
+    [FIELDS.PAG.registrado]: registrado,
+    [FIELDS.PAG.anulado]:    false,
+  });
+}
+
+async function anularAdicional(adicionalId, motivo, registrado) {
+  const adic = state.adicionales.find(a => a.id === adicionalId);
+  const f = adic.fields;
+
+  await updateRecord(TABLES.ADICIONALES, adicionalId, {
+    [FIELDS.ADIC.anulado]:          true,
+    [FIELDS.ADIC.motivo_anulacion]: motivo,
+  });
+
+  const hoy = new Date().toISOString().slice(0, 10);
+  await createRecord(TABLES.ADICIONALES, {
+    [FIELDS.ADIC.nombre]:           'ANULACIÓN — ' + (f[FIELDS.ADIC.nombre] || ''),
+    [FIELDS.ADIC.solicitud]:        f[FIELDS.ADIC.solicitud],
+    [FIELDS.ADIC.fecha]:            hoy,
+    [FIELDS.ADIC.monto_base_ars]:   -(f[FIELDS.ADIC.monto_base_ars]   || 0),
+    [FIELDS.ADIC.monto_base_usd]:   -(f[FIELDS.ADIC.monto_base_usd]   || 0),
+    [FIELDS.ADIC.tiene_iva]:        f[FIELDS.ADIC.tiene_iva],
+    [FIELDS.ADIC.monto_final_ars]:  -(f[FIELDS.ADIC.monto_final_ars]  || 0),
+    [FIELDS.ADIC.monto_final_usd]:  -(f[FIELDS.ADIC.monto_final_usd]  || 0),
+    [FIELDS.ADIC.moneda]:           f[FIELDS.ADIC.moneda],
+    [FIELDS.ADIC.tc]:               f[FIELDS.ADIC.tc],
+    [FIELDS.ADIC.equiv_ars]:        -(f[FIELDS.ADIC.equiv_ars]        || 0),
+    [FIELDS.ADIC.motivo]:           'Anulación de: ' + (f[FIELDS.ADIC.motivo] || ''),
+    [FIELDS.ADIC.registrado]:       registrado,
+    [FIELDS.ADIC.anulado]:          false,
+  });
 }
 
 // ============================================================
