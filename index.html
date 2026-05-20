@@ -852,6 +852,32 @@
   </div>
 </div>
 
+<!-- MODAL ANULAR SOLICITUD -->
+<div class="modal-overlay hidden" id="modal-anular-solicitud">
+  <div class="modal" style="width:520px;">
+    <div class="modal-title">Anular solicitud</div>
+    <div id="modal-anular-sol-info" style="font-size:12px;color:var(--text2);margin-bottom:14px;padding-bottom:12px;border-bottom:0.5px solid var(--border);"></div>
+    <div style="background:#FDECEA;border-left:4px solid #C0392B;padding:10px 14px;border-radius:6px;font-size:12px;color:#7B1C1C;margin-bottom:14px;">
+      &#9888; Esta acción oculta la solicitud de todas las vistas. El registro se conserva en Airtable para auditoría.
+    </div>
+    <div id="modal-anular-sol-aviso-pagos" class="hidden" style="background:#FFF3CD;border-left:4px solid #856404;padding:10px 14px;border-radius:6px;font-size:12px;color:#533F03;margin-bottom:14px;">
+      &#9888; Esta solicitud tiene pagos parciales registrados. Si los pagos también fueron cargados por error, anulá cada uno por separado desde la sección de Pagos.
+    </div>
+    <div class="form-field" style="margin-bottom:12px;">
+      <label class="form-label">Motivo de la anulación <span class="req">*</span></label>
+      <input class="form-input" id="modal-anular-sol-motivo" placeholder="Ej: Presupuesto cargado por error"/>
+    </div>
+    <div class="form-field" style="margin-bottom:4px;">
+      <label class="form-label">Anulado por <span class="req">*</span></label>
+      <input class="form-input" id="modal-anular-sol-por" placeholder="Nombre de quien anula"/>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal('modal-anular-solicitud')">Cancelar</button>
+      <button class="btn-primary" id="btn-confirmar-anular-sol" style="background:#C0392B;" onclick="confirmarAnularSolicitud()">Confirmar anulación</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL ANULACIÓN -->
 <div class="modal-overlay hidden" id="modal-anulacion">
   <div class="modal">
@@ -918,6 +944,10 @@ const FIELDS = {
     saldo:            'saldo_pendiente_ars [calc]',
     total_adicionales:'total_adicionales_ars_calc',
     obs:              'observaciones',
+    anulada:          'anulada',
+    motivo_anulacion: 'motivo_anulacion',
+    fecha_anulacion:  'fecha_anulacion',
+    anulada_por:      'anulada_por',
   },
   PAG: {
     nombre:           'nombre_pago',
@@ -1065,7 +1095,7 @@ function renderGrafico() {
 
   // Agrupar solicitudes por mes de deadline
   const mesesSet = new Set();
-  state.solicitudes.forEach(s => {
+  state.solicitudes.filter(s => !s.fields[FIELDS.SOL.anulada]).forEach(s => {
     const dl = s.fields[FIELDS.SOL.deadline];
     if (dl) mesesSet.add(dl.slice(0, 7));
   });
@@ -1090,7 +1120,7 @@ function renderGrafico() {
   const usdPagado    = meses.map(_ => 0);
   const usdPendiente = meses.map(_ => 0);
 
-  state.solicitudes.forEach(s => {
+  state.solicitudes.filter(s => !s.fields[FIELDS.SOL.anulada]).forEach(s => {
     const dl = s.fields[FIELDS.SOL.deadline];
     if (!dl) return;
     const mes = dl.slice(0, 7);
@@ -1231,6 +1261,7 @@ function renderDashboard() {
   const filtroMoneda = document.getElementById('filtro-moneda-dashboard')?.value || '';
 
   const activas = state.solicitudes.filter(s => {
+    if (s.fields[FIELDS.SOL.anulada]) return false;
     const est = getVal(s.fields, FIELDS.SOL.estado);
     if (est === 'Rechazado') return false;
     if (filtroMes) {
@@ -1285,7 +1316,7 @@ function renderDashboard() {
 
 function populateMesFilter() {
   const meses = new Set();
-  state.solicitudes.forEach(s => {
+  state.solicitudes.filter(s => !s.fields[FIELDS.SOL.anulada]).forEach(s => {
     const dl = s.fields[FIELDS.SOL.deadline];
     if (dl) meses.add(dl.slice(0, 7));
   });
@@ -1310,7 +1341,7 @@ function renderSolicitudes() {
   const en7  = new Date(hoy); en7.setDate(hoy.getDate() + 7);
   const finMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
 
-  let lista = [...state.solicitudes];
+  let lista = state.solicitudes.filter(s => !s.fields[FIELDS.SOL.anulada]);
   if (filtroEstado) lista = lista.filter(s => getVal(s.fields, FIELDS.SOL.estado) === filtroEstado);
   if (filtroMoneda) lista = lista.filter(s => getVal(s.fields, FIELDS.SOL.moneda) === filtroMoneda);
   if (filtroDeadline) lista = lista.filter(s => {
@@ -1365,6 +1396,7 @@ function renderSolicitudes() {
           <button class="action-btn" onclick="irAAdic('${s.id}')">+ Adicional</button>
           <button class="action-btn" onclick="abrirModalUrgencia('${s.id}')">Editar</button>
           ${getVal(f, FIELDS.SOL.estado) === 'Pendiente aprobación' ? `<button class="action-btn" style="border-color:#854F0B;color:#854F0B;" onclick="abrirModalEditar('${s.id}')">✏️ Presupuesto</button>` : ''}
+          ${getVal(f, FIELDS.SOL.estado) !== 'Pagado' ? `<button class="action-btn" style="border-color:#C0392B;color:#C0392B;" onclick="abrirModalAnularSolicitud('${s.id}')">🗑 Anular</button>` : ''}
         </div>
       </td>
     </tr>`;
@@ -1428,6 +1460,7 @@ function populateSelects() {
 
   // Solicitudes activas en formulario pago
   const activasSols = state.solicitudes.filter(s => {
+    if (s.fields[FIELDS.SOL.anulada]) return false;
     const est = getVal(s.fields, FIELDS.SOL.estado);
     return ['Aprobado', 'Pago parcial'].includes(est);
   });
@@ -1450,7 +1483,7 @@ function populateSelects() {
   // Solicitudes en formulario adicional
   const naSol = document.getElementById('na-solicitud');
   naSol.innerHTML = '<option value="">— Seleccionar solicitud —</option>' +
-    state.solicitudes.filter(s => !['Rechazado'].includes(getVal(s.fields, FIELDS.SOL.estado)))
+    state.solicitudes.filter(s => !s.fields[FIELDS.SOL.anulada] && !['Rechazado'].includes(getVal(s.fields, FIELDS.SOL.estado)))
     .map(s => `<option value="${s.id}">${s.fields[FIELDS.SOL.nombre]||s.id}</option>`).join('');
 }
 
@@ -1802,6 +1835,61 @@ async function guardarAdicional() {
     showView('dashboard');
   } catch(e) { showToast('Error al guardar: ' + e.message, 'error'); }
   finally { btn.disabled = false; btn.textContent = 'Registrar adicional'; }
+}
+
+// ============================================================
+// ANULACIÓN DE SOLICITUDES
+// ============================================================
+function abrirModalAnularSolicitud(solicitudId) {
+  currentSolicitudId = solicitudId;
+  const sol = state.solicitudes.find(s => s.id === solicitudId);
+  const f   = sol?.fields || {};
+
+  const obraName = lookupNombre(f[FIELDS.SOL.obra], state.obras, 'obras');
+  const provName = lookupNombre(f[FIELDS.SOL.proveedor], state.proveedores, 'proveedores');
+  const moneda   = getVal(f, FIELDS.SOL.moneda) || 'ARS';
+  const monto    = moneda === 'ARS'
+    ? ars(f[FIELDS.SOL.monto_final_ars] || f[FIELDS.SOL.monto_base_ars])
+    : 'USD ' + Number(f[FIELDS.SOL.monto_final_usd] || f[FIELDS.SOL.monto_base_usd]).toLocaleString('es-AR');
+
+  document.getElementById('modal-anular-sol-info').innerHTML =
+    `<strong>${f[FIELDS.SOL.nombre] || solicitudId}</strong><br/>
+     ${obraName} &nbsp;·&nbsp; ${provName}<br/>
+     <span style="color:var(--text2)">${getVal(f, FIELDS.SOL.estado) || '—'} &nbsp;·&nbsp; ${monto}</span>`;
+
+  const tienePagos = (Number(f[FIELDS.SOL.total_pagado]) || 0) > 0;
+  document.getElementById('modal-anular-sol-aviso-pagos').classList.toggle('hidden', !tienePagos);
+
+  document.getElementById('modal-anular-sol-motivo').value = '';
+  document.getElementById('modal-anular-sol-por').value    = '';
+  openModal('modal-anular-solicitud');
+}
+
+async function confirmarAnularSolicitud() {
+  const motivo = document.getElementById('modal-anular-sol-motivo').value.trim();
+  const por    = document.getElementById('modal-anular-sol-por').value.trim();
+  if (!motivo) { showToast('El motivo es obligatorio', 'error'); return; }
+  if (!por)    { showToast('Completá quién realiza la anulación', 'error'); return; }
+
+  const btn = document.getElementById('btn-confirmar-anular-sol');
+  btn.disabled = true; btn.textContent = 'Anulando...';
+
+  try {
+    const hoy = new Date().toISOString().slice(0, 10);
+    await updateRecord(TABLES.SOLICITUDES, currentSolicitudId, {
+      [FIELDS.SOL.anulada]:          true,
+      [FIELDS.SOL.motivo_anulacion]: motivo,
+      [FIELDS.SOL.fecha_anulacion]:  hoy,
+      [FIELDS.SOL.anulada_por]:      por,
+    });
+    closeModal('modal-anular-solicitud');
+    showToast('Solicitud anulada correctamente', 'success');
+    await loadAll();
+  } catch(e) {
+    showToast('Error al anular: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Confirmar anulación';
+  }
 }
 
 // ============================================================
